@@ -566,3 +566,54 @@ button.brand { text-align: left; padding: 0; color: #fff; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Tablero de Directoras ---------- */
+.ranking .rk-title { font-size: 22px; margin-top: 6px; }
+.rk-share { display: flex; gap: 10px; flex-wrap: wrap; }
+.rk-share .btn { flex: 1 1 200px; }
+.rk-cloud { color: #A9B3D6; font-weight: 700; }
+.rk-players { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.rk-player { display: flex; align-items: center; gap: 10px; background: var(--night-2); border: 1px solid rgba(255,255,255,.1); border-radius: var(--r-md); padding: 10px 12px; min-width: 0; }
+.rk-player > div { display: grid; min-width: 0; flex: 1; }
+.rk-player b { font-family: var(--f-display); font-size: 17px; }
+.rk-player small { color: #A9B3D6; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-player .portrait.mini, .rk-faces .portrait.mini, .rk-table th .portrait.mini { width: 40px; height: 40px; flex: none; }
+.rk-remove { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.08); color: #A9B3D6; flex: none; }
+.rk-empty { display: grid; gap: 6px; }
+.rk-records { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.rk-record { display: grid; gap: 10px; align-content: start; border: 3px solid transparent; }
+.rk-record.mine { border-color: var(--sun); }
+.rk-rec-head { display: flex; gap: 10px; align-items: center; }
+.rk-rec-head > div { display: grid; }
+.rk-rec-head small, .rk-leader small { color: var(--ink-2); }
+.rk-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--paper-2); }
+.rk-leader { display: flex; gap: 10px; align-items: center; }
+.rk-leader > div:last-child { display: grid; }
+.rk-leader b { font-family: var(--f-display); font-size: 18px; }
+.rk-faces { display: flex; }
+.rk-faces .portrait + .portrait { margin-left: -12px; }
+.rk-mine { color: var(--ink-2); font-weight: 700; }
+.rk-table-wrap { display: grid; gap: 10px; overflow-x: auto; }
+.rk-table { width: 100%; border-collapse: separate; border-spacing: 4px; font-variant-numeric: tabular-nums; }
+.rk-table th { font-size: 13px; color: var(--ink-2); font-weight: 800; text-align: center; }
+.rk-table thead th { vertical-align: bottom; }
+.rk-table thead th > * { display: block; margin: 0 auto; }
+.rk-table tbody th { text-align: left; white-space: nowrap; }
+.rk-table td { text-align: center; background: var(--paper-2); border-radius: 10px; padding: 6px 4px; min-width: 64px; }
+.rk-table td.top { background: #FFF1CC; box-shadow: inset 0 0 0 2px var(--sun); }
+.rk-table td small { display: block; color: var(--ink-2); font-size: 11.5px; }
+.rk-stars { color: #E9A100; letter-spacing: 1px; font-size: 15px; }
+.rk-personal { display: grid; gap: 6px; }
+.family-btn { margin-top: 6px; }
+.family-code { font-family: ui-monospace, Menlo, monospace; font-size: 20px; font-weight: 800; letter-spacing: 1px; background: var(--paper-2); border-radius: 12px; padding: 10px 14px; user-select: all; word-break: break-all; }
+@media (max-width: 520px) {
+  .rk-records { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rk-record { padding: 12px; gap: 8px; }
+  .rk-rec-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .rk-rec-head b { font-size: 15px; line-height: 1.15; }
+  .rk-rec-head small, .rk-mine { font-size: 12px; }
+  .rk-ic { width: 32px; height: 32px; font-size: 18px; }
+  .rk-leader { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .rk-leader b { font-size: 16px; }
+  .rk-faces .portrait.mini { width: 34px; height: 34px; }
+}

@@ -108,6 +108,7 @@ async function menu() {
   const choice = await modal((close) => h('div', { class: 'msg-card' },
     h('div', { class: 'quote', style: { fontSize: '26px' } }, 'Menú'),
     h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('mandate') }, '🎯 Ver el mandato del Consejo'),
+    h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('ranking') }, '🏆 Tablero de Directoras'),
     h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('sound') }, app.settings.sound ? '🔊 Sonido: activado' : '🔈 Sonido: apagado'),
     h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('title') }, '🏠 Ir a la portada'),
     h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('players') }, '👥 Cambiar de jugadora'),
@@ -117,6 +118,7 @@ async function menu() {
   if (choice === 'title') nav.title();
   if (choice === 'players') nav.players();
   if (choice === 'mandate') showMandate(app.s);
+  if (choice === 'ranking') nav.ranking();
 }
 
 export function showMandate(s) {
