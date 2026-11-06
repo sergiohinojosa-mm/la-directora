@@ -144,6 +144,15 @@ export function animateDay(svg, result, s) {
       setTimeout(() => {
         const rect = g.querySelector('.room');
         rect.setAttribute('fill', COLORS[t.state]);
+        if (g.querySelector('.dirt') || g.dataset.state === 'dirty') {
+          const sx = +rect.getAttribute('x') + 48;
+          const sy = +rect.getAttribute('y') + 35;
+          const sp = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          sp.setAttribute('x', sx); sp.setAttribute('y', sy); sp.setAttribute('font-size', '22'); sp.setAttribute('text-anchor', 'middle');
+          sp.setAttribute('class', 'sparkle'); sp.style.transformOrigin = `${sx}px ${sy}px`;
+          sp.textContent = '✨';
+          g.append(sp);
+        }
         g.querySelector('.dirt')?.remove();
         if (t.state === 'occ' && !g.querySelector('.guest')) {
           const x = +rect.getAttribute('x');

@@ -6,13 +6,14 @@ import { resolveEvent, playDay, finishEvening, advanceAfterDay, nextDay, hire, f
 import { EVENT_BY_ID } from '../data/events.js';
 import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER, TRAINING_DAYS } from '../data/world.js';
 import { rank } from '../data/badges.js';
-import { mandateFor, PROFIT_GOAL, monthProgress } from '../engine/board.js';
+import { mandateFor, profitGoalFor, monthProgress } from '../engine/board.js';
 import { saveGame } from '../store.js';
 import { app, mount, sfx, botones, toast, modal, confetti } from './core.js';
 import { hotelSvg, animateDay } from './hotel.js';
 import { drainInbox, pendingLessons } from './inbox.js';
 import { CHALLENGE_BY_ID, challengeText } from '../data/challenges.js';
 import { LESSON_BY_ID } from '../data/lessons.js';
+import { reviewFor } from '../data/reviews.js';
 
 let nav = {};
 export function setNav(n) { nav = n; }
@@ -26,8 +27,8 @@ const add = (el, ...kids) => el.append(...clean(kids));
 const isPhone = () => window.innerWidth < 700;
 
 const KIND = {
-  noticia: ['Noticia', '#2EC4C9'], equipo: ['Equipo', '#E2513E'], operacion: ['Operación', '#D98E04'],
-  oportunidad: ['Oportunidad', '#1FA971'], crisis: ['Crisis', '#E2513E'], mercado: ['Mercado', '#2EC4C9'],
+  noticia: ['Noticia', '#2EC4C9', '📰'], equipo: ['Equipo', '#E2513E', '🧑‍🤝‍🧑'], operacion: ['Operación', '#D98E04', '🔧'],
+  oportunidad: ['Oportunidad', '#1FA971', '✨'], crisis: ['Crisis', '#E2513E', '🚨'], mercado: ['Mercado', '#2EC4C9', '📈'],
 };
 
 export function renderGame() {
@@ -103,7 +104,7 @@ export function showMandate(s) {
     h('div', { class: 'from' }, `Mandato del Consejo · Mes ${calendar(s.day).month}`),
     h('div', { class: 'quote' }, m.title),
     h('p', { class: 'meaning' }, m.text(s)),
-    h('p', { class: 'muted', style: { fontSize: '14px' } }, `⭐ Cumplir el mandato · ⭐⭐ y además ganar dinero · ⭐⭐⭐ y además ganar ${money(PROFIT_GOAL[s.locationId])} o más con reseñas de 3.8★`),
+    h('p', { class: 'muted', style: { fontSize: '14px' } }, `⭐ Cumplir el mandato · ⭐⭐ y además ganar dinero · ⭐⭐⭐ y además ganar ${money(profitGoalFor(s, calendar(s.day).month))} o más con reseñas de 3.8★`),
     h('button', { class: 'btn btn-primary btn-block', onclick: () => close() }, 'Entendido')), { dismissable: true });
 }
 
@@ -180,11 +181,12 @@ function challengeRow(s) {
 }
 
 function eventCard(s, ev) {
-  const [label, color] = KIND[ev.kind] || KIND.noticia;
+  const [label, color, icon] = KIND[ev.kind] || KIND.noticia;
   sfx('bell');
   return h('div', { class: 'stack', style: { justifyItems: 'center' } },
     h('div', { class: 'event-card' },
-      h('div', { class: 'kind', style: { color } }, ev.kind === 'noticia' ? `📰 ${label}` : `⚡ ${label}`),
+      h('div', { class: 'ev-icon', style: { background: color + '22' } }, ev.icon || icon),
+      h('div', { class: 'kind', style: { color } }, label),
       h('h3', null, ev.title),
       h('p', null, ev.text),
       ev.options.map((o, i) => h('button', { class: 'option', onclick: () => {
@@ -220,7 +222,7 @@ function tipText(s, p, asked) {
   if (s.day === 3) return 'Mira el <b>pronóstico</b>: las barras rojas son días con más gente que cuartos. ¿Cobrarías lo mismo esos días?';
   if (s.day === 4) return 'Dato real: en México los hoteles se llenan en promedio <b>60%</b>. Casi nunca están llenos, por eso cada cuarto vendido cuenta.';
   if (s.mods.some((m) => m.label === 'Descuento de Marea Inn' && s.day >= m.from && s.day <= m.to)) return recall('guerra_precios', 'Marea Inn bajó sus precios. ¿Los igualas o defiendes lo que te hace distinta?');
-  if (early && fcToday > rooms * 1.05 && avgRatio <= 1.02) return 'Hoy viene <b>más gente de la que cabe</b>. Cuando hay mucha demanda, un precio un poco más alto puede darte más ganancia.';
+  if (early && fcToday > rooms * 1.05 && avgRatio <= 1.02) return recall('demanda_precio', 'Hoy viene <b>más gente de la que cabe</b>. Cuando hay mucha demanda, un precio un poco más alto puede darte más ganancia.');
   if (early && fcToday < rooms * 0.6 && avgRatio > 1.05) return recall('cuarto_vacio', 'Hoy hay <b>poca demanda</b> y tu precio está alto. Un cuarto vacío esta noche no se puede vender mañana.');
   if (calendar(s.day).dayOfMonth === 28) return recall('palabra', 'Hoy es día de pago al banco. ¿Tienes suficiente en caja?');
   if (s.day === 6) return 'Al final de cada semana verás tu <b>reporte</b>, y al final del mes tendrás <b>junta con el Consejo</b>. ¡Prepárate!';
@@ -318,6 +320,9 @@ async function openDay(s, panel, scene) {
   scene.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   await animateDay(svg, r, s);
   sfx(r.profit >= 0 ? 'coin' : 'bad');
+  const float = h('div', { class: `float-money ${r.profit >= 0 ? 'up' : 'down'}` }, `${r.profit >= 0 ? '+' : '−'}${money(Math.abs(r.profit)).replace('−', '')}`);
+  scene.append(float);
+  await new Promise((res) => setTimeout(res, 1100));
   renderGame();
 }
 
@@ -337,6 +342,7 @@ function evening(s, panel) {
         kpi('Ganancia del día', money(r.profit), prev ? r.profit - prev.profit : null, money),
         kpi('Cuartos vendidos', `${r.soldTotal}/${r.rooms}`, prev ? r.soldTotal - prev.soldTotal : null, (v) => String(v)),
         kpi('Reseñas', r.reputation.toFixed(2) + '★', r.repDelta, (v) => v.toFixed(2))),
+      reviewCard(r),
       h('div', null, h('b', null, '¿Por qué pasó esto?')),
       chainGroup(r.causes, 'good', '✅ Lo que salió bien'),
       chainGroup(r.causes, 'bad', '⚠️ Lo que puedes mejorar'),
@@ -363,6 +369,14 @@ function evening(s, panel) {
         renderGame();
         window.scrollTo(0, 0);
       } }, next)));
+}
+
+function reviewCard(r) {
+  if (!r.soldTotal && !r.lostDirty) return null;
+  const rv = reviewFor(r);
+  return h('div', { class: 'review' },
+    h('div', { class: 'rv-head' }, h('span', { class: 'rv-ava' }, rv.who[0]), h('div', null, h('b', null, rv.who), h('small', null, 'Reseña de anoche')), h('span', { class: 'rv-stars' }, '★'.repeat(rv.stars) + '☆'.repeat(5 - rv.stars))),
+    h('p', null, `“${rv.text}”`));
 }
 
 function chainGroup(causes, tone, title) {

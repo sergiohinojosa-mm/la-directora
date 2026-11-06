@@ -308,6 +308,8 @@ export function explain(s, r) {
     chains.push({ tone: 'bad', steps: [`Precio ${Math.round((r.priceRatio - 1) * 100)}% arriba de lo normal`, 'menos reservas', `${empty} cuartos vacíos`] });
   } else if (r.priceRatio < 0.9 && r.wanted > r.rooms * 1.15) {
     chains.push({ tone: 'bad', steps: ['Precio bajo en un día con mucha demanda', 'el hotel se llenó igual', `dejaste de ganar unos ${fmt(r.refRevenue - r.revenue)}`] });
+  } else if (r.priceRatio < 1.05 && r.wanted >= r.rooms * 1.25 && r.occupancy === 1) {
+    chains.push({ tone: 'bad', steps: [`${r.wanted - r.rooms} personas más querían cuarto`, 'te llenaste con precio normal', 'pudiste cobrar más'] });
   }
   if (r.workload > 1 && !r.overtime) chains.push({ tone: 'bad', steps: ['Mucho trabajo de limpieza', 'equipo cansado', `ánimo ${Math.round(r.moraleDelta)}`] });
 

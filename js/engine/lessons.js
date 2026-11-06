@@ -49,6 +49,12 @@ export function afterDay(s, r) {
     applyLesson(s, 'cuarto_vacio', `Era un día flojo y aun así vendiste ${r.soldTotal} de ${rooms} cuartos.`);
   }
 
+  if (r.occupancy === 1 && r.wanted >= rooms * 1.25 && r.priceRatio < 1.05) {
+    discover(s, 'demanda_precio', `Hoy te llenaste con precio normal, pero ${r.wanted - rooms} personas más querían cuarto. Pudiste cobrar más.`);
+  } else if (learned('demanda_precio') && r.priceRatio >= 1.1 && r.occupancy >= 0.9) {
+    applyLesson(s, 'demanda_precio', `Subiste tu precio ${Math.round((r.priceRatio - 1) * 100)}% en un día lleno y vendiste ${r.soldTotal} de ${rooms}.`);
+  }
+
   if (r.loanPaid) {
     if (!discover(s, 'palabra', `Hoy pagaste ${money(r.loanPaid)} al banco, a tiempo.`) && r.cash >= 0) {
       applyLesson(s, 'palabra', `Otra mensualidad de ${money(r.loanPaid)} pagada a tiempo.`);

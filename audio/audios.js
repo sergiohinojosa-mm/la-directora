@@ -6,6 +6,7 @@ export const RECORDED = [
   'conoce_cliente',
   'ejecucion',
   'cuarto_vacio',
+  'demanda_precio',
   'numeros_historia',
   'palabra',
   'cash_king',
