@@ -2,8 +2,6 @@
 
 const SAVE_KEY = 'ladirectora.save.v1';
 const SETTINGS_KEY = 'ladirectora.settings.v1';
-// The family's PIN for the Panel del Consejo. Luciana plays without it.
-const DEFAULT_PIN = '8642';
 
 export function loadGame() {
   try {
@@ -29,9 +27,9 @@ export function deleteGame() {
 
 export function loadSettings() {
   try {
-    return { sound: true, pin: DEFAULT_PIN, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+    return { sound: true, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
   } catch {
-    return { sound: true, pin: DEFAULT_PIN };
+    return { sound: true };
   }
 }
 

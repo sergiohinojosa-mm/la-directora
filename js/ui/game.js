@@ -10,7 +10,7 @@ import { mandateFor, PROFIT_GOAL } from '../engine/board.js';
 import { saveGame } from '../store.js';
 import { app, mount, sfx, botones, toast, modal, confetti } from './core.js';
 import { hotelSvg, animateDay } from './hotel.js';
-import { drainInbox } from './inbox.js';
+import { drainInbox, pendingLessons } from './inbox.js';
 
 let nav = {};
 export function setNav(n) { nav = n; }
@@ -35,13 +35,15 @@ export function renderGame() {
   mount(h('div', { class: 'shell' },
     topbar(s),
     h('div', { class: 'stage' },
-      h('div', { class: 'scene-wrap' }, scene, legend()),
+      h('div', { class: 'scene-wrap' }, scene, legend(sceneOpts(s).mode === 'evening')),
       panel)));
   if (s.phase === 'morning') morning(s, panel, scene);
   else if (s.phase === 'evening') evening(s, panel);
   else if (s.phase === 'week') week(s, panel);
   else if (s.phase === 'rescue') rescue(s, panel);
-  drainInbox(s, save).then(save);
+  // Lessons come after she reads the evening/week report: experience first, then the lesson.
+  const deferLessons = s.phase === 'evening' || s.phase === 'week';
+  drainInbox(s, save, { onlyRewards: deferLessons }).then(save);
 }
 
 function sceneOpts(s) {
@@ -49,9 +51,9 @@ function sceneOpts(s) {
   return { mode: 'morning' };
 }
 
-function legend() {
+function legend(night) {
   return h('div', { class: 'scene-caption legend' },
-    h('span', null, h('i', { style: { background: '#7FE0B1' } }), 'Ocupado'),
+    h('span', null, h('i', { style: { background: night ? '#FFE28A' : '#7FE0B1' } }), night ? 'Ocupado (luz prendida)' : 'Ocupado'),
     h('span', null, h('i', { style: { background: '#FFFFFF' } }), 'Libre y limpio'),
     h('span', null, h('i', { style: { background: '#FFC8C0' } }), 'Por limpiar'));
 }
@@ -160,7 +162,7 @@ function tip(s, p) {
   const L = loc(s);
   const avgRatio = L.rooms.reduce((a, r) => a + s.prices[r.id] / refEff(s, r), 0) / L.rooms.length;
   let text = null;
-  if (s.day === 1) text = '¡Bienvenida, Directora! Soy <b>Botones</b>. Hoy decides <b>precios</b> y <b>limpieza</b>. Abajo ves cuántos cuartos esperas vender. Cuando estés lista, toca <b>Abrir el día</b>.';
+  if (s.day === 1) text = '¡Bienvenida, Directora! Soy <b>Botones</b>. Cada mañana decides <b>precios</b> y <b>limpieza</b>. Mira el pronóstico: entre semana viene menos gente que el fin de semana. Cuando estés lista, toca <b>Abrir el día</b>.';
   else if (p.lostDirty > 0) text = `Hoy hay <b>${p.dirtyStart} cuartos por limpiar</b> y tu equipo solo puede limpiar <b>${p.capacity}</b>. Un cuarto sucio no se puede vender. ¿Horas extra o contratar?`;
   else if (s.day === 2) text = 'Cada cuarto ocupado anoche hay que <b>limpiarlo hoy</b>. Si no alcanzan tus recamaristas, ese cuarto no se vende.';
   else if (s.day === 3) text = 'Mira el <b>pronóstico</b>: las barras rojas son días con mucha gente buscando cuarto. ¿Cobrarías lo mismo esos días?';
@@ -201,7 +203,7 @@ function pricesCard(s, L, redraw) {
       const step = priceStep(r.ref);
       const set = (d) => { s.prices[r.id] = clamp(s.prices[r.id] + d, Math.round(r.ref * 0.4 / step) * step, Math.round(r.ref * 2.5 / step) * step); sfx('tap'); save(); redraw(); };
       return h('div', { class: 'price-row' },
-        h('div', { class: 'name' }, h('b', null, r.name), h('small', null, `${r.count} cuarto${r.count > 1 ? 's' : ''} · normal ${money(ref)}`), h('br'), h('span', { class: `vs-ref ${cls}` }, txt)),
+        h('div', { class: 'name' }, h('b', null, r.name), h('small', null, `${r.count} cuarto${r.count > 1 ? 's' : ''} · precio normal ${money(Math.round(ref / 50) * 50)}`), h('br'), h('span', { class: `vs-ref ${cls}` }, txt)),
         h('div', { class: 'stepper' },
           h('button', { 'aria-label': `Bajar precio ${r.name}`, onclick: () => set(-step) }, '−'),
           h('div', { class: 'val' }, money(s.prices[r.id])),
@@ -270,7 +272,7 @@ function evening(s, panel) {
   const prev = s.history[s.history.length - 2];
   const c = calendar(r.day);
   const isWeekEnd = r.day % 7 === 0;
-  const next = r.cash < 0 ? '⚠️ Hablar con el Consejo' : isWeekEnd ? '📊 Ver el reporte de la semana' : '🌙 Siguiente día';
+  const next = pendingLessons(s) ? '📩 Mensaje del Consejo' : r.cash < 0 ? '⚠️ Hablar con el Consejo' : isWeekEnd ? '📊 Ver el reporte de la semana' : '🌙 Siguiente día';
   add(panel, 
     h('div', { style: { padding: '0 4px' } },
       h('h2', { style: { fontSize: '26px' } }, `Cierre del ${DAYS[r.dow].toLowerCase()}`),
@@ -281,7 +283,9 @@ function evening(s, panel) {
         kpi('Cuartos vendidos', `${r.soldTotal}/${r.rooms}`, prev ? r.soldTotal - prev.soldTotal : null, (v) => String(v)),
         kpi('Reseñas', r.reputation.toFixed(2) + '★', r.repDelta, (v) => v.toFixed(2))),
       h('div', null, h('b', null, '¿Por qué pasó esto?')),
-      r.causes.map((ch) => h('div', { class: `chain ${ch.tone}` }, ch.steps.flatMap((st, i) => i ? [h('i', null, '→'), h('span', null, st)] : [h('span', null, st)]))),
+      chainGroup(r.causes, 'good', '✅ Lo que salió bien'),
+      chainGroup(r.causes, 'bad', '⚠️ Lo que puedes mejorar'),
+      chainGroup(r.causes, 'neutral', '🌤️ Lo que no dependía de ti'),
       h('details', { class: 'more' },
         h('summary', null, 'Ver las cuentas del día ▾'),
         h('div', { class: 'pl', style: { marginTop: '8px' } },
@@ -296,13 +300,22 @@ function evening(s, panel) {
           h('div', { class: 'ln' }, h('span', null, 'Precio promedio cobrado'), h('span', { class: 'num' }, money(r.adr))),
           h('div', { class: 'ln' }, h('span', null, 'Caja al cierre'), h('span', { class: 'num' }, money(r.cash)))))),
     h('div', { class: 'cta-bar' },
-      h('button', { class: 'btn btn-primary btn-big btn-block', onclick: () => {
+      h('button', { class: 'btn btn-primary btn-big btn-block', onclick: async () => {
         sfx('tap');
+        await drainInbox(s, save);
         finishEvening(s);
         save();
         renderGame();
         window.scrollTo(0, 0);
       } }, next)));
+}
+
+function chainGroup(causes, tone, title) {
+  const list = causes.filter((c) => c.tone === tone);
+  if (!list.length) return null;
+  return h('div', { class: 'stack', style: { gap: '6px' } },
+    h('small', { style: { fontWeight: 800, color: 'var(--ink-2)' } }, title),
+    list.map((ch) => h('div', { class: `chain ${ch.tone}` }, ch.steps.flatMap((st, i) => i ? [h('i', null, '→'), h('span', null, st)] : [h('span', null, st)]))));
 }
 
 function kpi(label, value, delta, fmt) {
@@ -355,9 +368,10 @@ function week(s, panel) {
       h('span', { class: 'kicker' }, '📓 Mi diario de Directora'),
       h('b', null, q),
       ta,
-      h('small', { class: 'muted' }, 'Tu papá puede leer tu diario en el Panel del Consejo.')),
+      h('small', { class: 'muted' }, 'Tu diario se guarda en tu Libro de Directora.')),
     h('div', { class: 'cta-bar' },
-      h('button', { class: 'btn btn-primary btn-big btn-block', onclick: () => {
+      h('button', { class: 'btn btn-primary btn-big btn-block', onclick: async () => {
+        await drainInbox(s, save);
         const answer = ta.value.trim();
         s.diary = s.diary.filter((d) => !(d.year === s.year && d.week === w.week));
         if (answer) s.diary.push({ year: s.year, week: w.week, q, answer, day: s.day });
@@ -366,7 +380,7 @@ function week(s, panel) {
         save();
         renderGame();
         window.scrollTo(0, 0);
-      } }, monthEnd ? '🏛️ Ir a la junta del Consejo' : 'Empezar la semana ' + (w.week + 1))));
+      } }, pendingLessons(s) ? '📩 Mensaje del Consejo' : monthEnd ? '🏛️ Ir a la junta del Consejo' : 'Empezar la semana ' + (w.week + 1))));
 }
 
 // ---------------- Rescue & closed ----------------

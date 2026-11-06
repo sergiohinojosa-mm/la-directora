@@ -7,9 +7,15 @@ import { BADGE_BY_ID } from '../data/badges.js';
 import { BOARD } from '../data/world.js';
 import { modal, avatar, audioPlayer, confetti, sfx, hasAudio } from './core.js';
 
-export async function drainInbox(s, save) {
+const isLesson = (m) => m.kind === 'new' || m.kind === 'applied' || m.kind === 'mastered';
+export const pendingLessons = (s) => s.inbox.some(isLesson);
+
+// onlyRewards: show badges/rank now and keep lesson messages for when she has read the report.
+export async function drainInbox(s, save, { onlyRewards = false } = {}) {
   while (s.inbox.length) {
-    const item = s.inbox.shift();
+    const idx = onlyRewards ? s.inbox.findIndex((m) => !isLesson(m)) : 0;
+    if (idx < 0) break;
+    const [item] = s.inbox.splice(idx, 1);
     save?.();
     if (item.kind === 'new') await lessonNew(item.id);
     else if (item.kind === 'applied' || item.kind === 'mastered') await lessonLevel(item.id, item.kind);
@@ -28,7 +34,7 @@ export function lessonNew(id) {
       avatar(l.by),
       h('div', { class: 'from' }, `Mensaje de ${who.name}`),
       h('div', { class: 'quote' }, `“${l.phrase}”`),
-      player || h('p', { class: 'muted', style: { fontSize: '13px' } }, hasAudio(id) ? '' : `${who.name} todavía no graba este mensaje.`),
+      player,
       h('p', { class: 'meaning' }, l.meaning),
       h('span', { class: 'level-pill' }, '📖 Nueva carta en tu Libro de Lecciones'),
       h('button', { class: 'btn btn-primary btn-block', onclick: () => { player?.stop(); close(); } }, 'Lo tengo'),

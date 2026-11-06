@@ -21,8 +21,9 @@ export function renderBook(back) {
       h('div', { class: 'tabs', role: 'tablist' },
         tabBtn('lessons', `📖 Lecciones ${discovered}/${LESSONS.length}`),
         tabBtn('badges', `🏅 Insignias ${(s.badges || []).length}/${BADGES.length}`),
-        tabBtn('career', `🎖️ ${r.name}`)),
-      tab === 'lessons' ? lessons(s) : tab === 'badges' ? badges(s) : career(s)));
+        tabBtn('career', `🎖️ ${r.name}`),
+        tabBtn('diary', '📓 Diario')),
+      tab === 'lessons' ? lessons(s) : tab === 'badges' ? badges(s) : tab === 'diary' ? diary(s) : career(s)));
   };
   const tabBtn = (id, label) => h('button', { class: `tab ${tab === id ? 'on' : ''}`, role: 'tab', 'aria-selected': tab === id, onclick: () => { tab = id; sfx('tap'); draw(); } }, label);
   draw();
@@ -66,6 +67,13 @@ function openLesson(s, l) {
 let renderBookAgain = () => {};
 export function setBookRedraw(fn) { renderBookAgain = fn; }
 
+function diary(s) {
+  const entries = (s.diary || []).slice().reverse();
+  if (!entries.length) return h('div', { class: 'card' }, 'Al final de cada semana puedes escribir aquí lo que aprendiste. Tus notas te ayudan a preparar la junta con el Consejo.');
+  return h('div', { class: 'stack' }, entries.map((d) => h('div', { class: 'card stack' },
+    h('small', { class: 'muted' }, `Año ${d.year} · Semana ${d.week}`), h('b', null, d.q), h('p', null, d.answer))));
+}
+
 function badges(s) {
   const got = new Set(s.badges || []);
   return h('div', { class: 'badge-grid' }, BADGES.map((b) => h('div', { class: `bcard ${got.has(b.id) ? 'got' : 'locked'}` },
@@ -75,7 +83,7 @@ function badges(s) {
 function career(s) {
   const r = rank(s);
   const progress = r.next ? (r.pts - r.points) / (r.next.points - r.points) : 1;
-  const stars = Object.values(s.stars).reduce((a, b) => a + b, 0);
+  const stars = Object.values(s.monthStars || {}).reduce((a, b) => a + b, 0);
   return h('div', { class: 'stack', style: { gap: '16px' } },
     h('div', { class: 'card-dark card stack' },
       h('div', { class: 'row between' }, h('h3', null, r.name), h('b', { class: 'num' }, `${r.pts} puntos`)),

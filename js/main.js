@@ -8,7 +8,6 @@ import { startPrologue } from './ui/prologue.js';
 import { renderGame, setNav } from './ui/game.js';
 import { renderBoard, setBoardNav } from './ui/board.js';
 import { renderBook, setBookRedraw } from './ui/book.js';
-import { renderParent } from './ui/parent.js';
 import { discover } from './engine/lessons.js';
 
 const nav = {
@@ -16,7 +15,6 @@ const nav = {
   game: () => renderGame(),
   board: () => renderBoard(),
   book: () => { const back = () => renderGame(); setBookRedraw(() => renderBook(back)); renderBook(back); },
-  parent: () => renderParent(() => titleScreen()),
   saveSettings: () => saveSettingsNow(),
   newYear: () => newYear(),
 };
@@ -39,9 +37,7 @@ function titleScreen() {
         saved && saved.phase !== 'closed'
           ? h('button', { class: 'btn btn-primary btn-big', onclick: () => { sfx('tap'); renderGame(); } }, '▶ Continuar')
           : null,
-        h('button', { class: `btn ${saved ? 'btn-ghost' : 'btn-primary btn-big'}`, onclick: () => newGame(!!saved) }, saved ? 'Nueva partida' : '🔑 Empezar')),
-      h('div', { class: 'title-foot' },
-        h('button', { class: 'btn btn-ghost', style: { minHeight: '40px', fontSize: '14px' }, onclick: () => nav.parent() }, '🔒 Panel del Consejo')))));
+        h('button', { class: `btn ${saved ? 'btn-ghost' : 'btn-primary btn-big'}`, onclick: () => newGame(!!saved) }, saved ? 'Nueva partida' : '🔑 Empezar')))));
 }
 
 async function newGame(hasSave) {
@@ -60,7 +56,7 @@ async function newGame(hasSave) {
 
 function newYear() {
   const old = app.s;
-  const carry = { year: (old.year || 1) + 1, lessons: old.lessons, diary: old.diary, badges: old.badges || [], stars: old.stars || {} };
+  const carry = { year: (old.year || 1) + 1, lessons: old.lessons, diary: old.diary, badges: old.badges || [], stars: old.stars || {}, monthStars: old.monthStars || {} };
   app.s = { lessons: old.lessons, inbox: [], day: 0 };
   discover(app.s, 'practica');
   startPrologue(onPrologueDone, carry);

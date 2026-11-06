@@ -7,7 +7,7 @@ import { discover, applyLesson } from './lessons.js';
 
 const OCC_TARGET = { playa: 0.62, centro: 0.6, carretera: 0.5 };
 // Monthly profit that earns the third star.
-export const PROFIT_GOAL = { playa: 150_000, centro: 70_000, carretera: 30_000 };
+export const PROFIT_GOAL = { playa: 150_000, centro: 60_000, carretera: 25_000 };
 
 export const MANDATES = [
   { id: 'llenar', title: 'Llenar el hotel',
@@ -23,6 +23,8 @@ export const MANDATES = [
     text: (s) => `Este mes queremos ingresos al menos 10% más altos que el mes pasado (${money((s.months[s.months.length - 1]?.revenue ?? 0) * 1.1)}).`,
     met: (s, m) => m.revenue >= (s.months[s.months.length - 2]?.revenue ?? 0) * 1.1 },
 ];
+
+const plural = (d) => { const x = d.toLowerCase(); return x.endsWith('s') ? x : x + 's'; };
 
 export const mandateFor = (month) => MANDATES[(month - 1) % MANDATES.length];
 
@@ -79,7 +81,7 @@ export function questions(s, m) {
       explain: `El gasto más grande fue "${costNames[biggest]}": ${money(m.costs[biggest])}.` },
     { by: 'marcela', text: '¿Qué día de la semana se llenó más tu hotel?',
       options: shuffle([best, worst, other], month * 13).map((d) => ({ label: DAYS[d], correct: d === best })),
-      explain: `Los ${DAYS[best].toLowerCase()} se llenó ${pct(byDow[best])} en promedio y los ${DAYS[worst].toLowerCase()} solo ${pct(byDow[worst])}.` },
+      explain: `Los ${plural(DAYS[best])} se llenó ${pct(byDow[best])} en promedio y los ${plural(DAYS[worst])} solo ${pct(byDow[worst])}. Los días llenos aguantan precios más altos.` },
     { by: 'papa', text: 'Si el próximo mes quieres ganar más, ¿qué cambiarías primero?',
       options: shuffle(Object.keys(fixes), month * 3).map((k) => ({ label: fixes[k], correct: k === fix })),
       explain: fix === 'limpieza' ? `Perdiste ${m.lostDirty} huéspedes por cuartos sucios. Ese dinero ya estaba en la puerta.`
@@ -124,8 +126,9 @@ export function resolveMeeting(s, m, picked, answers) {
 
   const before = s.confidence;
   s.confidence = clamp(s.confidence + delta, 0, 100);
-  const chapter = 1;
-  if (m.month === 1) s.stars[chapter] = stars;
+  if (m.month === 1) s.stars[1] = stars;
+  s.monthStars = s.monthStars || {};
+  s.monthStars[`${s.year}-${m.month}`] = stars;
   if (stars >= 2) { if (!discover(s, 'celebra')) applyLesson(s, 'celebra'); }
 
   let verdict;

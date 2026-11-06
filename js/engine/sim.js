@@ -187,6 +187,7 @@ export function simulateDay(s) {
   let wantedTotal = 0;
   let priceRatioWeighted = 0;
   let contractExtra = 0;
+  let refRevenue = 0;
   for (const r of L.rooms) {
     const cs = contractsToday(s, day, r.id);
     const gift = r === L.rooms[0] ? Math.min(s.giftRooms, r.count) : 0;
@@ -207,6 +208,7 @@ export function simulateDay(s) {
       contractExtra += c.extraCost || 0;
     }
     priceRatioWeighted += sold[r.id] * (s.prices[r.id] / refEff(s, r));
+    refRevenue += sold[r.id] * refEff(s, r);
   }
   const rooms = totalRooms(s);
   const priceRatio = soldTotal ? priceRatioWeighted / soldTotal : L.rooms.reduce((a, r) => a + s.prices[r.id] / refEff(s, r), 0) / L.rooms.length;
@@ -258,7 +260,7 @@ export function simulateDay(s) {
     dirtyStart, cleaned, capacity: cap.real, workload, overtime: s.overtime,
     priceRatio, dayRating, reputation: s.reputation, repDelta: s.reputation - repBefore,
     morale: s.morale, moraleDelta: s.morale - moraleBefore,
-    labels: fc.labels, loanPaid, promisesPaid,
+    labels: fc.labels, loanPaid, promisesPaid, refRevenue,
     lowDemand: fc.total < rooms * 0.65,
     event: s.event ? s.event.id : null,
   };
@@ -273,29 +275,48 @@ export function simulateDay(s) {
   return result;
 }
 
-// Cause → effect chains for the "¿Por qué pasó esto?" box. Most important first.
+// Cause → effect chains for the evening report: what went well (good), what to improve (bad)
+// and context she didn't control (neutral). Both wins and mistakes teach.
 export function explain(s, r) {
   const chains = [];
   const empty = r.rooms - r.soldTotal;
+  const extra = Math.round(r.revenue - r.refRevenue);
+  const fmt = (v) => '$' + Math.abs(Math.round(v)).toLocaleString('es-MX');
+
+  // Wins
+  if (r.priceRatio >= 1.08 && r.occupancy >= 0.85) {
+    chains.push({ tone: 'good', steps: [`Precio ${Math.round((r.priceRatio - 1) * 100)}% arriba en día de mucha demanda`, `${r.soldTotal} de ${r.rooms} vendidos`, `${fmt(extra)} más que con precio normal`] });
+  }
+  if (r.priceRatio <= 0.95 && r.lowDemand && r.occupancy >= 0.6) {
+    chains.push({ tone: 'good', steps: ['Bajaste el precio en un día flojo', `${r.soldTotal} cuartos vendidos`, 'mejor que dejarlos vacíos'] });
+  }
+  if (r.overtime && r.lostDirty === 0 && r.dirtyStart > 0) {
+    chains.push({ tone: 'good', steps: ['Pediste horas extra', 'todos los cuartos listos', 'nadie se quedó sin cuarto'] });
+  }
+  if (r.occupancy === 1 && r.lostDirty === 0) {
+    chains.push({ tone: 'good', steps: ['Hotel lleno', 'limpieza a tiempo', `${r.soldTotal} huéspedes contentos`] });
+  }
+
+  // Mistakes
   if (r.lostDirty > 0) {
     chains.push({ tone: 'bad', steps: [`${r.dirtyStart - r.cleaned} cuartos sin limpiar`, `${r.lostDirty} huéspedes sin cuarto`, 'reseñas malas'] });
   }
   if (empty >= Math.max(2, r.rooms * 0.3) && r.priceRatio > 1.12) {
     chains.push({ tone: 'bad', steps: [`Precio ${Math.round((r.priceRatio - 1) * 100)}% arriba de lo normal`, 'menos reservas', `${empty} cuartos vacíos`] });
-  } else if (empty >= Math.max(2, r.rooms * 0.35) && r.lowDemand) {
-    chains.push({ tone: 'neutral', steps: [`${DAYS[r.dow]} con poca demanda`, `${empty} cuartos vacíos`] });
-  }
-  if (r.priceRatio < 0.85 && r.occupancy > 0.9) {
-    chains.push({ tone: 'neutral', steps: ['Precio bajo', 'hotel lleno', 'pero ganaste menos por cuarto'] });
+  } else if (r.priceRatio < 0.9 && r.wanted > r.rooms * 1.15) {
+    chains.push({ tone: 'bad', steps: ['Precio bajo en un día con mucha demanda', 'el hotel se llenó igual', `dejaste de ganar unos ${fmt(r.refRevenue - r.revenue)}`] });
   }
   if (r.workload > 1 && !r.overtime) chains.push({ tone: 'bad', steps: ['Mucho trabajo de limpieza', 'equipo cansado', `ánimo ${Math.round(r.moraleDelta)}`] });
-  if (r.overtime) chains.push({ tone: 'neutral', steps: ['Horas extra', 'más cuartos limpios', 'pero más gasto y cansancio'] });
-  for (const label of r.labels) chains.push({ tone: 'neutral', steps: [label, 'cambió la demanda'] });
-  if (r.loanPaid) chains.push({ tone: 'neutral', steps: ['Día de pago al banco', `−$${Math.round(r.loanPaid).toLocaleString('es-MX')}`] });
-  if (!chains.length || (r.occupancy >= 0.8 && r.lostDirty === 0)) {
-    chains.unshift({ tone: 'good', steps: ['Precio y limpieza en equilibrio', `${r.soldTotal} de ${r.rooms} cuartos vendidos`] });
+
+  // Context
+  if (empty >= Math.max(2, r.rooms * 0.35) && r.lowDemand && r.priceRatio <= 1.12 && !chains.some((c) => c.steps[0].startsWith('Bajaste'))) {
+    chains.push({ tone: 'neutral', steps: [`${DAYS[r.dow]} con poca demanda`, `${empty} cuartos vacíos`] });
   }
-  return chains.slice(0, 3);
+  if (r.overtime && !chains.some((c) => c.steps[0] === 'Pediste horas extra')) chains.push({ tone: 'neutral', steps: ['Horas extra', 'más cuartos limpios', 'pero más gasto y cansancio'] });
+  for (const label of r.labels) chains.push({ tone: 'neutral', steps: [label, 'cambió la demanda'] });
+  if (r.loanPaid) chains.push({ tone: 'neutral', steps: ['Día de pago al banco', `−${fmt(r.loanPaid)}`] });
+  if (!chains.length) chains.push({ tone: 'neutral', steps: ['Día tranquilo', `${r.soldTotal} de ${r.rooms} cuartos vendidos`] });
+  return chains.slice(0, 4);
 }
 
 export function summarize(list) {
