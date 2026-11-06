@@ -9,6 +9,7 @@ import { newGame, attrDemandBonus, expectationPenalty } from '../engine/sim.js';
 import { discover } from '../engine/lessons.js';
 import { startMorning, pickChallenge } from '../engine/flow.js';
 import { app, mount, avatar, sfx, botones } from './core.js';
+import { playerName } from '../store.js';
 import { lessonNew } from './inbox.js';
 import { hotelSvg } from './hotel.js';
 
@@ -35,7 +36,7 @@ export function startPrologue(onDone, carry = null) {
       h('div', { class: 'card', style: { display: 'grid', gap: '14px' } },
         h('div', { class: 'row' }, avatar('papa', 'sm'), avatar('alma', 'sm'), avatar('marcela', 'sm'),
           h('div', null, h('b', null, 'El Consejo'), h('div', { class: 'muted', style: { fontSize: '13px' } }, 'Grupo Bahía Corasol'))),
-        h('h2', { style: { fontSize: '30px' } }, carry ? `Año ${carry.year}: una nueva oportunidad` : 'Querida Luciana:'),
+        h('h2', { style: { fontSize: '30px' } }, carry ? `Año ${carry.year}: una nueva oportunidad` : `Querida ${playerName()}:`),
         h('p', null, carry
           ? 'El hotel anterior cerró, pero lo que aprendiste se queda contigo. El Consejo confía en ti para intentarlo de nuevo en Bahía Corasol.'
           : 'El Consejo quiere entrar al negocio de los hoteles en Bahía Corasol, un pueblo de playa que se está poniendo de moda. Te elegimos como Directora General.'),

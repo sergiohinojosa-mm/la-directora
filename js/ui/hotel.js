@@ -4,6 +4,8 @@
 import { loc, roomsOf } from '../engine/sim.js';
 import { rank } from '../data/badges.js';
 import { chapterFor } from '../data/chapters.js';
+import { currentProfile } from '../store.js';
+import { lookColors } from './avatar.js';
 
 const SKY = {
   morning: ['#FFD9B8', '#BFE7EE'],
@@ -230,15 +232,16 @@ function business(s, { bx, bw, by, ly, groundY, night }) {
   return out;
 }
 
-// Luciana herself, standing in her lobby.
+// The player herself, standing in her lobby, in her own colors.
 function directora(x, y) {
+  const c = lookColors(currentProfile()?.look);
   return `<g transform="translate(${x} ${y})"><g class="directora">
-    <path d="M-13 -14 q-4 14 0 26 h26 q4 -12 0 -26 q-2 -16 -13 -16 q-11 0 -13 16z" fill="#6B4026"/>
-    <rect x="-10" y="-2" width="20" height="24" rx="6" fill="#6E1F33"/>
+    <path d="M-13 -14 q-4 14 0 26 h26 q4 -12 0 -26 q-2 -16 -13 -16 q-11 0 -13 16z" fill="${c.hair}"/>
+    <rect x="-10" y="-2" width="20" height="24" rx="6" fill="${c.top}"/>
     <rect x="-3" y="-2" width="6" height="16" fill="#fff"/>
     <rect x="-8" y="22" width="7" height="14" rx="3" fill="#8FB3D9"/><rect x="1" y="22" width="7" height="14" rx="3" fill="#8FB3D9"/>
-    <circle cx="0" cy="-14" r="10" fill="#F7D2B6"/>
-    <path d="M-11 -14 q0 -12 11 -12 q11 0 11 12 q-5 -5 -11 -6 q-6 1 -11 6z" fill="#6B4026"/>
+    <circle cx="0" cy="-14" r="10" fill="${c.skin}"/>
+    <path d="M-11 -14 q0 -12 11 -12 q11 0 11 12 q-5 -5 -11 -6 q-6 1 -11 6z" fill="${c.hair}"/>
     <circle cx="-3.5" cy="-14" r="1.4" fill="#3B2416"/><circle cx="3.5" cy="-14" r="1.4" fill="#3B2416"/>
     <path d="M-3 -9 q3 3 6 0" stroke="#B5534A" stroke-width="1.4" fill="none" stroke-linecap="round"/>
     <rect x="6" y="2" width="10" height="13" rx="2" fill="#FFC24B" transform="rotate(10 11 8)"/>

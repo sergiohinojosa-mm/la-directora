@@ -7,7 +7,8 @@ import { EVENT_BY_ID, txt } from '../data/events.js';
 import { AREAS, has, chapterFor, CHAPTERS } from '../data/chapters.js';
 import { areaPanel } from './areas.js';
 import { chapterIntro } from './chapter.js';
-import { lucianaAvatar } from './avatar.js';
+import { playerAvatar } from './avatar.js';
+import { currentProfile, playerName } from '../store.js';
 import { ensure, recruitCost, extraStaff, idleWages } from '../engine/systems.js';
 import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER, TRAINING_DAYS } from '../data/world.js';
 import { rank } from '../data/badges.js';
@@ -86,7 +87,7 @@ function topbar(s) {
   const lowCash = s.cash < weekCost(s);
   const newLessons = Object.values(s.lessons).some((l) => !l.seen);
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, lucianaAvatar('mini', { badge: false }), h('div', null, h('b', null, s.hotelName), h('small', null, `Directora Luciana · ${r.name} · ${dateLabel(s.day)}`))),
+    h('button', { class: 'brand', 'aria-label': 'Cambiar de jugadora', onclick: () => menu() }, playerAvatar('mini', currentProfile()?.look, { badge: false }), h('div', null, h('b', null, s.hotelName), h('small', null, `Directora ${playerName()} · ${r.name} · ${dateLabel(s.day)}`))),
     h('div', { class: 'chips' },
       stat('💰', '#FFC24B', money(s.cash), 'Caja', lowCash),
       stat('⭐', '#2EC4C9', s.reputation.toFixed(1), 'Reseñas'),
@@ -109,10 +110,12 @@ async function menu() {
     h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('mandate') }, '🎯 Ver el mandato del Consejo'),
     h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('sound') }, app.settings.sound ? '🔊 Sonido: activado' : '🔈 Sonido: apagado'),
     h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('title') }, '🏠 Ir a la portada'),
+    h('button', { class: 'btn btn-secondary btn-block', onclick: () => close('players') }, '👥 Cambiar de jugadora'),
     h('button', { class: 'btn btn-ghost btn-block', style: { color: 'var(--ink)' }, onclick: () => close(null) }, 'Cerrar'),
   ), { dismissable: true });
   if (choice === 'sound') { app.settings.sound = !app.settings.sound; nav.saveSettings(); toast(app.settings.sound ? 'Sonido activado' : 'Sonido apagado'); }
   if (choice === 'title') nav.title();
+  if (choice === 'players') nav.players();
   if (choice === 'mandate') showMandate(app.s);
 }
 

@@ -6,7 +6,8 @@ import { CHAPTERS, AREAS } from '../data/chapters.js';
 import { BOARD } from '../data/world.js';
 import { yearSummary } from '../engine/board.js';
 import { modal, avatar, sfx, confetti } from './core.js';
-import { lucianaAvatar } from './avatar.js';
+import { playerAvatar } from './avatar.js';
+import { currentProfile, playerName } from '../store.js';
 
 export function chapterIntro(s, ch) {
   const c = CHAPTERS[ch];
@@ -33,10 +34,10 @@ export function yearClose(s) {
   confetti(1.6);
   return modal((close) => h('div', { class: 'msg-card year-card' },
     h('div', { class: 'chapter-num' }, `Cierre del año ${Math.ceil(s.day / 336)}`),
-    lucianaAvatar('big'),
+    playerAvatar('big', currentProfile()?.look),
     h('div', { class: 'diploma' },
       h('small', null, 'El Consejo de Grupo Bahía Corasol otorga este reconocimiento a'),
-      h('div', { class: 'quote' }, 'Luciana, Directora General'),
+      h('div', { class: 'quote' }, `${playerName()}, Directora General`),
       h('small', null, `por dirigir ${s.hotelName} durante un año completo.`)),
     h('div', { class: 'pl' },
       h('div', { class: 'ln' }, h('span', null, 'Ingresos del año'), h('b', null, money(y.revenue))),

@@ -1,7 +1,7 @@
 // Entry point: title screen and navigation between screens.
 
 import { h } from './util.js';
-import { loadGame, saveGame } from './store.js';
+import { loadGame, saveGame, profiles, currentProfile, playerName, wipeAll } from './store.js';
 import { app, mount, sfx, saveSettingsNow, modal } from './ui/core.js';
 import { hotelSvg } from './ui/hotel.js';
 import { startPrologue } from './ui/prologue.js';
@@ -11,10 +11,13 @@ import { renderBook, setBookRedraw } from './ui/book.js';
 import { discover } from './engine/lessons.js';
 import { LESSONS } from './data/lessons.js';
 import { BOARD } from './data/world.js';
-import { lucianaAvatar } from './ui/avatar.js';
+import { playerAvatar } from './ui/avatar.js';
+import { pickPlayer, editor } from './ui/players.js';
+import { createProfile } from './store.js';
 
 const nav = {
   title: () => titleScreen(),
+  players: () => choosePlayer(),
   game: () => renderGame(),
   board: () => renderBoard(),
   book: () => { const back = () => renderGame(); setBookRedraw(() => renderBook(back)); renderBook(back); },
@@ -24,25 +27,53 @@ const nav = {
 setNav(nav);
 setBoardNav(nav);
 
+// Who's playing: everyone on this device has her own profile and hotel.
+let picked = false;
+function choosePlayer() {
+  pickPlayer(() => { picked = true; app.s = loadGame(); titleScreen(); });
+}
+
+async function start() {
+  const list = profiles();
+  if (!list.length) {
+    // First time on this device: create the first player.
+    mount(h('div', { class: 'title-screen' }, h('div', { class: 'title-content', style: { paddingTop: '18vh' } },
+      h('div', { class: 'logo' }, h('span', null, 'BAHÍA CORASOL'), 'La Directora'))));
+    const r = await editor(null);
+    if (!r) return start();
+    createProfile(r.name, r.look);
+    picked = true;
+    app.s = null;
+    return titleScreen();
+  }
+  if (list.length > 1 && !picked) return choosePlayer();
+  picked = true;
+  titleScreen();
+}
+
 function titleScreen() {
+  if (!currentProfile()) return start();
   const saved = app.s || loadGame();
-  if (saved) app.s = saved;
+  app.s = saved;
+  const me = currentProfile();
+  const name = playerName();
   const scene = h('div', { class: 'title-scene' }, hotelSvg(saved, { mode: 'title', name: saved?.hotelName || 'La Directora', compact: true }));
   mount(h('div', { class: 'title-screen' },
     scene,
     h('div', { class: 'title-content' },
       h('div', { class: 'title-hero' },
-        lucianaAvatar('hero'),
-        h('div', { class: 'logo' }, h('span', null, 'BAHÍA CORASOL'), 'La Directora', h('em', null, 'Luciana'))),
+        playerAvatar('hero', me.look),
+        h('div', { class: 'logo' }, h('span', null, 'BAHÍA CORASOL'), 'La Directora', h('em', null, name))),
       h('p', { class: 'title-sub' }, saved
-        ? `${saved.hotelName} te espera, Luciana. El Consejo quiere resultados.`
-        : 'Luciana, dirige tu propio hotel. Toma decisiones, cuida a tu equipo y rinde cuentas al Consejo.'),
+        ? `${saved.hotelName} te espera, ${name}. El Consejo quiere resultados.`
+        : `${name}, dirige tu propio hotel. Toma decisiones, cuida a tu equipo y rinde cuentas al Consejo.`),
       sayingOfTheDay(saved),
       h('div', { class: 'title-actions' },
         saved && saved.phase !== 'closed'
           ? h('button', { class: 'btn btn-primary btn-big', onclick: () => { sfx('tap'); renderGame(); } }, '▶ Continuar')
           : null,
-        h('button', { class: `btn ${saved ? 'btn-ghost' : 'btn-primary btn-big'}`, onclick: () => newGame(!!saved) }, saved ? 'Nueva partida' : '🔑 Empezar')))));
+        h('button', { class: `btn ${saved ? 'btn-ghost' : 'btn-primary btn-big'}`, onclick: () => newGame(!!saved) }, saved ? 'Nueva partida' : '🔑 Empezar'),
+        h('button', { class: 'btn btn-ghost', onclick: () => { sfx('tap'); choosePlayer(); } }, `👥 No soy ${name}: cambiar de jugadora`)))));
 }
 
 // Each session opens with one saying she already learned: a small, daily retrieval cue.
@@ -86,11 +117,11 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http') && loca
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
-// ?borrar=1 wipes this device's saved game (lessons, badges and diary too) so a new player starts clean.
+// ?borrar=1 wipes every player and saved game on this device so everyone starts clean.
 if (new URLSearchParams(location.search).has('borrar')) {
-  try { localStorage.removeItem('ladirectora.save.v1'); } catch { /* storage blocked */ }
+  wipeAll();
   app.s = null;
   history.replaceState(null, '', location.pathname);
 }
 
-titleScreen();
+start();

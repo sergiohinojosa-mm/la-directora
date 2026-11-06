@@ -3,7 +3,8 @@
 import { h, money, pct } from '../util.js';
 import { kpis, questions, resolveMeeting, mandateFor, planReady, planQuestion, planVotes, resolvePlan, DIVIDENDS, payDividends } from '../engine/board.js';
 import { PROJECTS } from '../engine/systems.js';
-import { lucianaAvatar } from './avatar.js';
+import { playerAvatar } from './avatar.js';
+import { currentProfile, playerName } from '../store.js';
 import { yearClose } from './chapter.js';
 import { nextDay } from '../engine/flow.js';
 import { checkBadges } from '../data/badges.js';
@@ -40,7 +41,7 @@ export function renderBoard() {
   const table = (speaker) => h('div', { class: `board-table n${members.length}` },
     members.map((who) => h('div', { class: 'seat', style: { opacity: speaker && speaker !== who ? 0.5 : 1 } },
       avatar(who), h('b', null, BOARD[who].name), h('small', null, BOARD[who].role))),
-    h('div', { class: 'seat presenter' }, lucianaAvatar('sm', { badge: false }), h('b', null, 'Luciana'), h('small', null, 'Directora General')));
+    h('div', { class: 'seat presenter' }, playerAvatar('sm', currentProfile()?.look, { badge: false }), h('b', null, playerName()), h('small', null, 'Directora General')));
 
   function frame(...children) {
     mount(h('div', { class: 'page', style: { maxWidth: '760px' } },
