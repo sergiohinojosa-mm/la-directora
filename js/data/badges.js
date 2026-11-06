@@ -33,6 +33,21 @@ export const BADGES = [
   { id: 'aplicada', icon: '✅', name: 'Lo puse en práctica', desc: 'Aplicaste una lección por primera vez.', on: 'lesson', check: (s) => countLevel(s, 2) >= 1 },
   { id: 'dorada', icon: '🥇', name: 'Lección dorada', desc: 'Dominaste una lección.', on: 'lesson', check: (s) => countLevel(s, 3) >= 1 },
   { id: 'doradas5', icon: '🏅', name: 'Maestra', desc: 'Dominaste 5 lecciones.', on: 'lesson', check: (s) => countLevel(s, 3) >= 5 },
+  // Capítulos 2–8
+  { id: 'capacitadora', icon: '🎓', name: 'Maestra de maestras', desc: 'Llevaste a tu equipo al nivel máximo de capacitación.', on: 'hire', check: (s) => (s.team?.skill || 0) >= 3 },
+  { id: 'equipo_estable', icon: '🪴', name: 'Nadie se va', desc: 'Un mes completo sin renuncias, desde el capítulo 2.', on: 'month', check: (s, m) => m.chapter >= 2 && m.quits === 0 },
+  { id: 'directo', icon: '💌', name: 'Reserva directa', desc: 'Con agencias activas, 60% de tus reservas de la semana fueron directas.', on: 'week', check: (s, w) => s.mkt?.ota && w.bookings && (w.bookings.directo + w.bookings.club) / (Object.values(w.bookings).reduce((a, b) => a + b, 0) || 1) >= 0.6 },
+  { id: 'reglas', icon: '📜', name: 'Mis reglas', desc: 'Escribiste tus políticas de servicio.', on: 'act', check: (s) => s.policy?.set },
+  { id: 'resolutiva', icon: '🔑', name: 'Recepción resolutiva', desc: 'Tu recepción resolvió 15 quejas en el momento.', on: 'day', check: (s) => s.history.reduce((a, r) => a + (r.resolved || 0), 0) >= 15 },
+  { id: 'chef', icon: '👩‍🍳', name: 'Buen provecho', desc: 'Abriste tu restaurante.', on: 'project', check: (s) => s.rest?.open },
+  { id: 'cero_desperdicio', icon: '🥗', name: 'Cero desperdicio', desc: 'Una semana de restaurante con muy poca comida tirada y nadie sin comer.', on: 'week', check: (s, w) => w.restRevenue > 0 && w.restWaste <= w.restFood * 0.08 && s.history.slice(-7).every((r) => !r.rest || r.rest.turnedAway === 0) },
+  { id: 'vendedora', icon: '🎁', name: 'Vendedora estrella', desc: 'Juntaste $20,000 en ventas cruzadas.', on: 'day', check: (s) => s.history.reduce((a, r) => a + (r.cross?.revenue || 0), 0) >= 20000 },
+  { id: 'en_forma', icon: '🛠️', name: 'Hotel impecable', desc: 'El estado del hotel llegó a 90/100.', on: 'day', check: (s) => (s.maint?.condition ?? 0) >= 90 },
+  { id: 'integra', icon: '💎', name: 'Íntegra', desc: 'Dijiste que no a un atajo deshonesto.', on: 'event', check: (s) => ['mordida', 'resenas_falsas'].includes(s.event?.id) && s.event.chosen === 0 },
+  { id: 'auditoria', icon: '🔍', name: 'Caja cuadrada', desc: 'Un mes completo con corte de caja y cero faltantes.', on: 'month', check: (s, m) => m.chapter >= 6 && m.controls && m.leak === 0 },
+  { id: 'unica', icon: '🦄', name: 'Única', desc: 'Creaste una experiencia que solo tu hotel ofrece.', on: 'project', check: (s) => !!s.comp?.unique },
+  { id: 'gran_apuesta', icon: '🏗️', name: 'Gran apuesta', desc: 'El Consejo aprobó tu plan de crecimiento.', on: 'project', check: (s) => ['building', 'done'].includes(s.plan?.status) },
+  { id: 'anio', icon: '🎓', name: 'Un año de Directora', desc: 'Dirigiste tu hotel 12 meses completos.', on: 'month', check: (s) => s.months.length >= 12 },
   { id: 'rescate', icon: '🛟', name: 'Salí del hoyo', desc: 'Recuperaste la caja después de un rescate del Consejo.', on: 'week', check: (s, w) => s.rescues > 0 && w.cash > 0 && w.profit > 0 },
 ];
 
@@ -43,11 +58,11 @@ function countLevel(s, min) {
 // Rank grows with stars, badges and mastered lessons.
 export const RANKS = [
   { name: 'Becaria', points: 0 },
-  { name: 'Gerente Junior', points: 6 },
-  { name: 'Gerente de Hotel', points: 16 },
-  { name: 'Directora General', points: 30 },
-  { name: 'Directora de Cadena', points: 48 },
-  { name: 'Magnate Hotelera', points: 72 },
+  { name: 'Gerente Junior', points: 8 },
+  { name: 'Gerente de Hotel', points: 25 },
+  { name: 'Directora General', points: 55 },
+  { name: 'Directora de Cadena', points: 100 },
+  { name: 'Magnate Hotelera', points: 160 },
 ];
 
 export function points(s) {

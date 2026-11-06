@@ -4,6 +4,7 @@
 
 import { clamp, calendar } from '../util.js';
 import { LOCATIONS } from './world.js';
+import { CHAPTER_EVENTS } from './events-chapters.js';
 
 const firstRoom = (s) => LOCATIONS.find((l) => l.id === s.locationId).rooms[0].id;
 
@@ -17,7 +18,7 @@ const nextWeekend = (s) => {
   return { from: s.day + toFri, to: s.day + toFri + 2 };
 };
 
-export const EVENTS = [
+const CH1_EVENTS = [
   {
     id: 'puente', kind: 'noticia', tone: 'good', minDay: 3,
     title: 'Viene un fin de semana largo',
@@ -86,7 +87,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'amenidades', kind: 'operacion', minDay: 7, negative: true,
+    id: 'amenidades', once: true, kind: 'operacion', minDay: 7, negative: true,
     title: 'Subió el precio de los jabones y toallas',
     text: 'Tu proveedor de amenidades sube 15% sus precios desde hoy.',
     options: [
@@ -99,7 +100,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'uniformes', kind: 'equipo', minDay: 6,
+    id: 'uniformes', once: true, kind: 'equipo', minDay: 6,
     title: 'El equipo pide uniformes nuevos',
     text: 'Los uniformes están viejos y rotos. El equipo dice que da pena atender así.',
     options: [
@@ -116,7 +117,7 @@ export const EVENTS = [
     title: 'Kevin de recepción tiene una idea',
     text: 'Propone noches de cine al aire libre para los huéspedes. Costaría $3,000 y una tarde de su tiempo.',
     options: [
-      { label: 'Probar la idea', fx: [['Caja −', 'dn'], ['Reseñas +', 'up'], ['Ánimo +', 'up']],
+      { label: 'Probar la idea', wise: true, wiseCtx: 'Probaste la idea de alguien de tu equipo.', fx: [['Caja −', 'dn'], ['Reseñas +', 'up'], ['Ánimo +', 'up']],
         apply: (s) => { s.cash -= 3000; s.morale = clamp(s.morale + 5, 0, 100); addMod(s, { type: 'ratingDay', delta: 0.25, from: s.day, to: s.day + 5, label: 'Noches de cine' }); return 'A los huéspedes les encantó y Kevin está feliz.'; } },
       { label: 'Ahora no', fx: [['Caja =', 'up'], ['Ánimo −', 'dn']],
         apply: (s) => { s.morale = clamp(s.morale - 4, 0, 100); return 'Kevin se quedó un poco desanimado.'; } },
@@ -161,4 +162,8 @@ export const EVENTS = [
   },
 ];
 
+export const EVENTS = [...CH1_EVENTS.map((e) => ({ ch: 1, ...e })), ...CHAPTER_EVENTS];
 export const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
+
+// Cards can have text that depends on the hotel (functions); this resolves them.
+export const txt = (v, s) => (typeof v === 'function' ? v(s) : v);

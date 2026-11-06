@@ -1,8 +1,9 @@
 // The hotel diorama: a cut-away building whose rooms show free / dirty / occupied.
 // mode: 'morning' (sunrise, dirty rooms waiting), 'day' (animation), 'evening' (sunset, results).
 
-import { loc } from '../engine/sim.js';
+import { loc, roomsOf } from '../engine/sim.js';
 import { rank } from '../data/badges.js';
+import { chapterFor } from '../data/chapters.js';
 
 const SKY = {
   morning: ['#FFD9B8', '#BFE7EE'],
@@ -15,11 +16,10 @@ const COLORS = { free: '#FFFFFF', dirty: '#FFC8C0', occ: '#7FE0B1', ready: '#E6F
 
 // One entry per room: { type, state }. Rooms are listed most expensive first (top floors).
 export function roomStates(s, result) {
-  const L = loc(s);
   const out = [];
-  for (const r of [...L.rooms].sort((a, b) => b.ref - a.ref)) {
-    const sold = result ? result.sold[r.id] : 0;
-    const dirty = result ? 0 : s.dirty[r.id];
+  for (const r of [...roomsOf(s)].sort((a, b) => b.ref - a.ref)) {
+    const sold = result ? result.sold[r.id] || 0 : 0;
+    const dirty = result ? 0 : s.dirty[r.id] || 0;
     for (let i = 0; i < r.count; i++) {
       let state = 'free';
       if (result) state = i < sold ? 'occ' : 'free';
@@ -83,7 +83,8 @@ export function hotelSvg(s, { mode = 'morning', result = null, name, compact = f
   });
 
   const ly = by + bh - lobbyH;
-  const vb = compact ? `${bx - 50} ${by - 66} ${bw + 50 + 180} ${H - (by - 66)}` : `0 0 ${W} ${H}`;
+  const left = s?.rest?.open ? 130 : 50;
+  const vb = compact ? `${bx - left} ${by - 66} ${bw + left + 180} ${H - (by - 66)}` : `0 0 ${W} ${H}`;
   const svg = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista del hotel">
     <defs>
       <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${skyTop}"/><stop offset="1" stop-color="${skyBottom}"/></linearGradient>
@@ -123,12 +124,14 @@ export function hotelSvg(s, { mode = 'morning', result = null, name, compact = f
       <path class="cat-tail" d="M16 8 q14 -4 12 -20" stroke="#F28C38" stroke-width="5" fill="none" stroke-linecap="round"/>
     </g>
     ${decorations(lvl, { bx, bw, by, ly, lobbyH, groundY, night, isBeach, gap })}
+    ${s ? business(s, { bx, bw, by, ly, groundY, night }) : ''}
+    ${s && mode !== 'title' ? directora(bx + 270, ly + 48) : ''}
     ${mode === 'day' ? `<g class="walker" transform="translate(${bx + bw + 60} ${groundY - 46})"><circle cx="0" cy="0" r="12" fill="#18203B"/><rect x="-12" y="12" width="24" height="30" rx="8" fill="#18203B"/><rect x="14" y="20" width="18" height="22" rx="4" fill="#FF6B57"/></g>` : ''}
-    <g transform="translate(${bx + bw + 30} ${groundY - 180})" opacity="${s ? 1 : 0.9}">
+    ${s?.comp?.open && chapterFor(s) >= 7 ? '' : `<g transform="translate(${bx + bw + 30} ${groundY - 180})" opacity="${s ? 1 : 0.9}">
       <rect width="120" height="180" rx="8" fill="${night ? '#3B3F72' : '#D4DDE8'}"/>
       <text x="60" y="22" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-size="13" font-weight="800" fill="${night ? '#C9CDF2' : '#5A6485'}">MAREA INN</text>
       <g fill="${night ? '#FFE28A' : '#EEF2F7'}"><rect x="12" y="36" width="44" height="30" rx="4"/><rect x="64" y="36" width="44" height="30" rx="4" opacity=".6"/><rect x="12" y="76" width="44" height="30" rx="4" opacity=".6"/><rect x="64" y="76" width="44" height="30" rx="4"/><rect x="12" y="116" width="44" height="30" rx="4"/><rect x="64" y="116" width="44" height="30" rx="4" opacity=".6"/></g>
-    </g>
+    </g>`}
   </svg>`;
   const wrap = document.createElement('div');
   wrap.innerHTML = svg;
@@ -204,6 +207,42 @@ function decorations(lvl, { bx, bw, by, ly, lobbyH, groundY, night, isBeach, gap
     out += `<g transform="translate(${bx + 20} ${by - 66})"><rect width="110" height="30" rx="10" fill="#18203B" stroke="${night ? '#FF8FB1' : '#A78BFA'}" stroke-width="3"/><text x="55" y="21" text-anchor="middle" font-size="15" fill="${night ? '#FFE28A' : '#FFC24B'}" font-weight="800">★★★★★</text></g>`;
   }
   return out;
+}
+
+// What her decisions added to the building: restaurant, terrace, spa, and the rival chain.
+function business(s, { bx, bw, by, ly, groundY, night }) {
+  let out = '';
+  if (s.rest?.open) {
+    out += `<g transform="translate(${bx - 120} ${groundY - 96})"><rect width="112" height="96" rx="10" fill="${night ? '#3B2E4E' : '#FFF4E4'}" stroke="#E07A5F" stroke-width="2"/><path d="M-6 0 h124 l-8 18 h-108z" fill="#E07A5F"/>${[0, 1, 2, 3, 4, 5].map((k) => `<path d="M${2 + k * 19} 0 h9 l-2 18 h-9z" fill="#fff" opacity=".85"/>`).join('')}<text x="56" y="40" text-anchor="middle" font-size="11" font-weight="800" fill="${night ? '#FFE28A' : '#9E2E1F'}" font-family="Plus Jakarta Sans, sans-serif">RESTAURANTE</text><rect x="14" y="50" width="34" height="30" rx="5" fill="${night ? '#FFE28A' : '#BFE7EE'}"/><rect x="64" y="50" width="34" height="46" rx="5" fill="#8B5E3C"/><text x="31" y="72" text-anchor="middle" font-size="16">🍽️</text></g>`;
+  }
+  if (s.plan?.project === 'terraza' && s.plan.status === 'done') {
+    out += `<g><rect x="${bx + 20}" y="${by - 64}" width="${bw - 40}" height="30" rx="6" fill="${night ? '#2D2A5C' : '#FFFFFF'}" opacity=".9"/>${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<circle cx="${bx + 34 + k * ((bw - 68) / 7)}" cy="${by - 60}" r="3.5" fill="${['#FFC24B', '#FF6B57', '#2EC4C9', '#A78BFA'][k % 4]}"/>`).join('')}<text x="${bx + bw / 2}" y="${by - 42}" text-anchor="middle" font-size="11" font-weight="800" fill="${night ? '#FFE28A' : '#18203B'}" font-family="Plus Jakarta Sans, sans-serif">🍹 TERRAZA</text></g>`;
+  }
+  if (s.plan?.status === 'building') {
+    out += `<g transform="translate(${bx + bw - 10} ${by - 120})"><rect x="0" y="0" width="6" height="110" fill="#FFC24B"/><rect x="-60" y="0" width="90" height="6" fill="#FFC24B"/><path d="M-50 6 v30" stroke="#18203B" stroke-width="2"/><rect x="-58" y="36" width="16" height="12" fill="#FF6B57"/></g>`;
+  }
+  if (s.attributes?.includes('spa') && s.plan?.project === 'spa' && s.plan.status === 'done') {
+    out += `<g transform="translate(${bx + 20} ${ly - 4})"><rect width="58" height="20" rx="10" fill="#7ED6A8"/><text x="29" y="14" text-anchor="middle" font-size="10" font-weight="800" fill="#18203B" font-family="Plus Jakarta Sans, sans-serif">🧖 SPA</text></g>`;
+  }
+  if (s.comp?.open && chapterFor(s) >= 7) {
+    out += `<g transform="translate(${bx + bw + 40} ${groundY - 250})" opacity=".95"><rect width="96" height="250" rx="6" fill="${night ? '#22305A' : '#9FB3C8'}"/><rect x="8" y="10" width="80" height="22" rx="4" fill="#1F6FEB"/><text x="48" y="25" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Plus Jakarta Sans, sans-serif">GlobalStay</text>${Array.from({ length: 6 }, (_, r) => [0, 1, 2].map((c) => `<rect x="${10 + c * 27}" y="${42 + r * 32}" width="20" height="20" rx="3" fill="${night ? ((r + c) % 2 ? '#FFE28A' : '#33426E') : '#DCE8F5'}"/>`).join('')).join('')}</g>`;
+  }
+  return out;
+}
+
+// Luciana herself, standing in her lobby.
+function directora(x, y) {
+  return `<g class="directora" transform="translate(${x} ${y})">
+    <path d="M-13 -14 q-4 14 0 26 h26 q4 -12 0 -26 q-2 -16 -13 -16 q-11 0 -13 16z" fill="#6B4026"/>
+    <rect x="-10" y="-2" width="20" height="24" rx="6" fill="#6E1F33"/>
+    <rect x="-3" y="-2" width="6" height="16" fill="#fff"/>
+    <rect x="-8" y="22" width="7" height="14" rx="3" fill="#8FB3D9"/><rect x="1" y="22" width="7" height="14" rx="3" fill="#8FB3D9"/>
+    <circle cx="0" cy="-14" r="10" fill="#F7D2B6"/>
+    <path d="M-11 -14 q0 -12 11 -12 q11 0 11 12 q-5 -5 -11 -6 q-6 1 -11 6z" fill="#6B4026"/>
+    <circle cx="-3.5" cy="-14" r="1.4" fill="#3B2416"/><circle cx="3.5" cy="-14" r="1.4" fill="#3B2416"/>
+    <path d="M-3 -9 q3 3 6 0" stroke="#B5534A" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <rect x="6" y="2" width="10" height="13" rx="2" fill="#FFC24B" transform="rotate(10 11 8)"/>
+  </g>`;
 }
 
 function tower(bx, by, bw, groundY, night) {

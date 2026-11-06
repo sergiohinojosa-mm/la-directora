@@ -11,6 +11,7 @@ import { renderBook, setBookRedraw } from './ui/book.js';
 import { discover } from './engine/lessons.js';
 import { LESSONS } from './data/lessons.js';
 import { BOARD } from './data/world.js';
+import { lucianaAvatar } from './ui/avatar.js';
 
 const nav = {
   title: () => titleScreen(),
@@ -30,10 +31,12 @@ function titleScreen() {
   mount(h('div', { class: 'title-screen' },
     scene,
     h('div', { class: 'title-content' },
-      h('div', { class: 'logo' }, h('span', null, 'BAHÍA LUNAR'), 'La Directora'),
+      h('div', { class: 'title-hero' },
+        lucianaAvatar('hero'),
+        h('div', { class: 'logo' }, h('span', null, 'BAHÍA CORASOL'), 'La Directora', h('em', null, 'Luciana'))),
       h('p', { class: 'title-sub' }, saved
-        ? `${saved.hotelName} te espera. El Consejo quiere resultados.`
-        : 'Dirige tu propio hotel. Toma decisiones, cuida a tu equipo y rinde cuentas al Consejo.'),
+        ? `${saved.hotelName} te espera, Luciana. El Consejo quiere resultados.`
+        : 'Luciana, dirige tu propio hotel. Toma decisiones, cuida a tu equipo y rinde cuentas al Consejo.'),
       sayingOfTheDay(saved),
       h('div', { class: 'title-actions' },
         saved && saved.phase !== 'closed'

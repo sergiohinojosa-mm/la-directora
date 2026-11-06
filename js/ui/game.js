@@ -1,9 +1,14 @@
 // The main play screen: morning decisions, the day animation, the evening report and the weekly report.
 
 import { h, money, pct, calendar, dateLabel, DAYS_SHORT, DAYS, clamp } from '../util.js';
-import { loc, preview, forecast, refEff, cleaningCapacity, totalRooms, weekCost } from '../engine/sim.js';
-import { resolveEvent, playDay, finishEvening, advanceAfterDay, nextDay, hire, fire } from '../engine/flow.js';
-import { EVENT_BY_ID } from '../data/events.js';
+import { loc, preview, forecast, refEff, cleaningCapacity, totalRooms, weekCost, roomsOf } from '../engine/sim.js';
+import { resolveEvent, playDay, finishEvening, advanceAfterDay, nextDay, hire, fire, eventOptions } from '../engine/flow.js';
+import { EVENT_BY_ID, txt } from '../data/events.js';
+import { AREAS, has, chapterFor, CHAPTERS } from '../data/chapters.js';
+import { areaPanel } from './areas.js';
+import { chapterIntro } from './chapter.js';
+import { lucianaAvatar } from './avatar.js';
+import { ensure, recruitCost, extraStaff, idleWages } from '../engine/systems.js';
 import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER, TRAINING_DAYS } from '../data/world.js';
 import { rank } from '../data/badges.js';
 import { mandateFor, profitGoalFor, monthProgress } from '../engine/board.js';
@@ -20,19 +25,22 @@ export function setNav(n) { nav = n; }
 
 const save = () => saveGame(app.s);
 // replaceChildren/append would print "null" for skipped optional pieces.
-const clean = (kids) => kids.flat().filter((k) => k != null && k !== false);
+const clean = (kids) => kids.flat(Infinity).filter((k) => k != null && k !== false);
 const put = (el, ...kids) => el.replaceChildren(...clean(kids));
 const add = (el, ...kids) => el.append(...clean(kids));
 
 const isPhone = () => window.innerWidth < 700;
+let tab = 'hoy';
 
 const KIND = {
   noticia: ['Noticia', '#2EC4C9', '📰'], equipo: ['Equipo', '#E2513E', '🧑‍🤝‍🧑'], operacion: ['Operación', '#D98E04', '🔧'],
   oportunidad: ['Oportunidad', '#1FA971', '✨'], crisis: ['Crisis', '#E2513E', '🚨'], mercado: ['Mercado', '#2EC4C9', '📈'],
+  gobierno: ['Gobierno', '#6C5CE7', '🏛️'], consejo: ['Consejo', '#A78BFA', '💼'],
 };
 
 export function renderGame() {
   const s = app.s;
+  ensure(s);
   if (s.phase === 'board') return nav.board();
   if (s.phase === 'closed') return closedScreen();
   const scene = h('div', { class: 'scene' }, hotelSvg(s, { ...sceneOpts(s), compact: isPhone() }));
@@ -48,6 +56,16 @@ export function renderGame() {
   else if (s.phase === 'rescue') rescue(s, panel);
   // Lessons come after she reads the evening/week report: experience first, then the lesson.
   const deferLessons = s.phase === 'evening' || s.phase === 'week';
+  // A new chapter opens with its story before anything else.
+  const ch = chapterFor(s);
+  const intro = s.phase === 'morning' && (s.chapterShown || 1) < ch && CHAPTERS[ch];
+  if (intro) {
+    s.chapterShown = ch;
+    save();
+    const area = AREAS.find((a) => a.ch === ch);
+    chapterIntro(s, ch).then(() => { if (area) tab = area.id; renderGame(); });
+    return;
+  }
   drainInbox(s, save, { onlyRewards: deferLessons }).then(save);
 }
 
@@ -68,7 +86,7 @@ function topbar(s) {
   const lowCash = s.cash < weekCost(s);
   const newLessons = Object.values(s.lessons).some((l) => !l.seen);
   return h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, h('b', null, s.hotelName), h('small', null, `${r.name} · ${dateLabel(s.day)}`)),
+    h('div', { class: 'brand' }, lucianaAvatar('mini', { badge: false }), h('div', null, h('b', null, s.hotelName), h('small', null, `Directora Luciana · ${r.name} · ${dateLabel(s.day)}`))),
     h('div', { class: 'chips' },
       stat('💰', '#FFC24B', money(s.cash), 'Caja', lowCash),
       stat('⭐', '#2EC4C9', s.reputation.toFixed(1), 'Reseñas'),
@@ -115,19 +133,31 @@ function morning(s, panel, scene) {
     add(panel, eventCard(s, ev));
     return;
   }
-  const L = loc(s);
+  const L = { rooms: roomsOf(s) };
+  const areas = AREAS.filter((a) => has(s, a.id));
+  if (!areas.some((a) => a.id === tab)) tab = 'hoy';
   const draw = () => {
     const p = preview(s);
-    put(panel, 
+    const body = tab === 'hoy'
+      ? [(s.notices || []).map((n) => h('div', { class: 'alert good' }, n)),
+        s.eventResult ? h('div', { class: 'alert info' }, '📣 ', s.eventResult) : null,
+        checklist(s, p),
+        tip(s, p),
+        forecastCard(s),
+        pricesCard(s, L, draw),
+        staffCard(s, p, draw),
+        projectionCard(s, p),
+        progressCard(s)]
+      : [s.eventResult ? h('div', { class: 'alert info' }, '📣 ', s.eventResult) : null, areaPanel(s, tab, draw, save)];
+    put(panel,
       header(s),
-      progressCard(s),
-      s.eventResult ? h('div', { class: 'alert info' }, '📣 ', s.eventResult) : null,
-      tip(s, p),
-      forecastCard(s),
-      pricesCard(s, L, draw),
-      staffCard(s, p, draw),
-      projectionCard(s, p),
+      areas.length > 1 ? h('div', { class: 'area-tabs', role: 'tablist' }, areas.map((a) => h('button', {
+        class: `atab ${tab === a.id ? 'on' : ''}`, role: 'tab', 'aria-selected': tab === a.id,
+        onclick: () => { tab = a.id; sfx('tap'); draw(); },
+      }, h('span', null, a.icon), a.name, a.ch === chapterFor(s) && a.ch > 1 ? h('i', { class: 'new-dot' }) : null))) : null,
+      body,
       h('div', { class: 'cta-bar' },
+        tab !== 'hoy' ? h('button', { class: 'btn btn-secondary btn-big', onclick: () => { tab = 'hoy'; sfx('tap'); draw(); window.scrollTo(0, 0); } }, '🏨 Hoy') : null,
         h('button', { class: 'btn btn-primary btn-big btn-block', onclick: () => openDay(s, panel, scene) }, '☀️ Abrir el día')),
     );
   };
@@ -187,15 +217,15 @@ function eventCard(s, ev) {
     h('div', { class: 'event-card' },
       h('div', { class: 'ev-icon', style: { background: color + '22' } }, ev.icon || icon),
       h('div', { class: 'kind', style: { color } }, label),
-      h('h3', null, ev.title),
-      h('p', null, ev.text),
-      ev.options.map((o, i) => h('button', { class: 'option', onclick: () => {
+      h('h3', null, txt(ev.title, s)),
+      h('p', null, txt(ev.text, s)),
+      eventOptions(s, ev).map((o) => h('button', { class: 'option', onclick: () => {
         sfx('tap');
-        resolveEvent(s, i);
+        resolveEvent(s, o.i);
         save();
         renderGame();
       } },
-        h('b', null, o.label),
+        h('b', null, txt(o.label, s)),
         o.fx ? h('div', { class: 'fx' }, o.fx.map(([t, c]) => h('span', { class: c }, t))) : null))),
     ev.kind !== 'noticia' ? h('p', { class: 'muted-dark', style: { fontSize: '13px', textAlign: 'center' } }, 'No hay respuesta perfecta. Cada opción tiene un costo.') : null);
 }
@@ -210,12 +240,13 @@ function tip(s, p) {
 function tipText(s, p, asked) {
   const fcToday = p.forecast.total;
   const rooms = totalRooms(s);
-  const L = loc(s);
+  const L = { rooms: roomsOf(s) };
   const avgRatio = L.rooms.reduce((a, r) => a + s.prices[r.id] / refEff(s, r), 0) / L.rooms.length;
   const early = s.day <= 21 || asked;
   const recall = (id, fallback) => (s.lessons[id]?.level ? `${fallback}<br><b>📖 Recuerda: “${LESSON_BY_ID[id].phrase}”</b>` : fallback);
   if (s.day === 1) return '¡Bienvenida, Directora! Soy <b>Botones</b>. Cada mañana decides <b>precios</b> y <b>limpieza</b>. Mira el pronóstico: entre semana viene menos gente que el fin de semana. Cuando estés lista, toca <b>Abrir el día</b>.';
   if (p.lostDirty > 0) return recall('ejecucion', `Hoy hay <b>${p.dirtyStart} cuartos por limpiar</b> y tu equipo solo puede limpiar <b>${p.capacity}</b>. Un cuarto sucio no se puede vender. ¿Horas extra o contratar?`);
+  if (extraStaff(s) > 0 && (asked || s.day % 3 === 0)) return `Tienes <b>${s.housekeepers} recamaristas</b> y con <b>${s.housekeepers - extraStaff(s)}</b> alcanzaría aunque el hotel se llene. Cada persona de más cuesta <b>${money(480 * (chapterFor(s) >= 2 ? s.team.wage : 1))} al día</b>. ¿Ajustas tu equipo?`;
   if (s.cash < weekCost(s)) return recall('cash_king', 'Tu caja está muy baja. Cuida cada gasto y busca días donde puedas ganar más.');
   if (s.morale < 50) return recall('equipo', 'Tu equipo está cansado. Un equipo cansado limpia más lento y atiende peor.');
   if (s.day === 2) return 'Cada cuarto ocupado anoche hay que <b>limpiarlo hoy</b>. Si no alcanza tu equipo, ese cuarto no se vende.';
@@ -229,13 +260,57 @@ function tipText(s, p, asked) {
   return null;
 }
 
+// ---- Guided decisions: the morning is four numbered steps with a status each ----
+function steps(s, p) {
+  const rooms = totalRooms(s);
+  const fc = p.forecast.total;
+  const L = { rooms: roomsOf(s) };
+  const ratio = L.rooms.reduce((a, r) => a + s.prices[r.id] / refEff(s, r), 0) / L.rooms.length;
+  const busy = fc > rooms * 1.05;
+  const slow = fc < rooms * 0.65;
+  let price = { state: 'ok', hint: 'Tus precios van con la demanda de hoy.' };
+  if (busy && ratio <= 1.02) price = { state: 'warn', hint: 'Hoy viene más gente que cuartos: ¿subes el precio?' };
+  else if (slow && ratio > 1.05) price = { state: 'warn', hint: 'Día flojo con precio alto: puedes quedarte con cuartos vacíos.' };
+  else if (busy) price = { state: 'ok', hint: 'Día lleno y precio arriba. ¡Bien!' };
+  else if (slow && ratio < 0.98) price = { state: 'ok', hint: 'Día flojo y precio más bajo para vender más.' };
+  const cleanSt = p.lostDirty > 0
+    ? { state: 'warn', hint: `Faltan manos: ${p.dirtyStart} cuartos por limpiar y tu equipo limpia ${p.capacity}. Contrata o pide horas extra.` }
+    : extraStaff(s) > 0
+      ? { state: 'warn', hint: `Te sobra gente: ${s.housekeepers} recamaristas para ${rooms} cuartos. Pagas ${money(idleWages(s))} al día en sueldos que no necesitas.` }
+      : { state: 'ok', hint: `Tu equipo alcanza: ${p.dirtyStart} por limpiar, pueden ${p.capacity}.` };
+  return [
+    { id: 'pronostico', n: 1, short: 'Pronóstico', title: 'Mira cuánta gente viene', state: 'info', hint: `Hoy buscan cuarto unas ${Math.round(fc)} personas y tienes ${rooms} cuartos.${busy ? ' 🔴 Día lleno.' : slow ? ' 🔵 Día flojo.' : ''}` },
+    { id: 'precios', n: 2, short: 'Precios', title: 'Decide tus precios', ...price },
+    { id: 'limpieza', n: 3, short: 'Limpieza', title: 'Revisa tu equipo de limpieza', ...cleanSt },
+    { id: 'abrir', n: 4, short: 'Abrir el día', title: 'Revisa el resultado y abre el día', state: price.state === 'warn' || cleanSt.state === 'warn' ? 'warn' : 'ok', hint: price.state === 'warn' || cleanSt.state === 'warn' ? 'Te falta revisar algún paso marcado en rojo.' : 'Todo listo. ¡Abre el día!' },
+  ];
+}
+
+function stepHead(st) {
+  return h('div', { class: 'step-head' },
+    h('span', { class: 'step-n' }, st.n),
+    h('div', null, h('b', null, st.title), h('small', null, st.hint)),
+    h('span', { class: 'step-st', 'aria-label': st.state === 'warn' ? 'Necesita atención' : 'Bien' }, st.state === 'warn' ? '⚠️' : st.state === 'ok' ? '✅' : '👀'));
+}
+
+// Checklist at the top: tap a step to jump to it.
+function checklist(s, p) {
+  return h('div', { class: 'checklist', role: 'list', 'aria-label': 'Decisiones de hoy' },
+    h('small', null, 'Antes de abrir el día'),
+    h('div', { class: 'chk-row' }, steps(s, p).map((st) => h('button', {
+      class: `chk ${st.state}`, role: 'listitem',
+      onclick: () => { sfx('tap'); document.getElementById(`step-${st.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
+    }, h('span', { class: 'step-n' }, st.n), st.short, h('i', null, st.state === 'warn' ? '⚠️' : st.state === 'ok' ? '✓' : '')))));
+}
+
 function forecastCard(s) {
   const days = Array.from({ length: 7 }, (_, i) => forecast(s, s.day + i));
   const rooms = totalRooms(s);
   const max = Math.max(rooms * 1.4, ...days.map((d) => d.total));
   const labels = [...new Set(days.flatMap((d) => d.labels))];
-  return h('div', { class: 'card' },
-    h('span', { class: 'kicker' }, 'Pronóstico de 7 días'),
+  const st = steps(s, preview(s)).find((x) => x.id === 'pronostico');
+  return h('div', { class: `card step-card ${st.state}`, id: 'step-pronostico' },
+    stepHead(st),
     h('div', { class: 'row between' }, h('h3', null, 'Gente buscando cuarto'), h('small', { class: 'muted' }, `Tienes ${rooms} cuartos`)),
     h('div', { class: 'forecast', role: 'img', 'aria-label': 'Demanda esperada por día' }, days.map((d, i) => {
       const hot = d.total > rooms;
@@ -250,8 +325,9 @@ function forecastCard(s) {
 function priceStep(ref) { return ref < 2000 ? 50 : 100; }
 
 function pricesCard(s, L, redraw) {
-  return h('div', { class: 'card stack' },
-    h('span', { class: 'kicker' }, 'Precios de hoy'),
+  const st = steps(s, preview(s)).find((x) => x.id === 'precios');
+  return h('div', { class: `card stack step-card ${st.state}`, id: 'step-precios' },
+    stepHead(st),
     L.rooms.map((r) => {
       const ref = refEff(s, r);
       const diff = s.prices[r.id] / ref - 1;
@@ -271,18 +347,27 @@ function pricesCard(s, L, redraw) {
 function staffCard(s, p, redraw) {
   const cap = cleaningCapacity(s);
   const short = p.dirtyStart > cap.real;
-  return h('div', { class: 'card stack' },
-    h('span', { class: 'kicker' }, 'Equipo de limpieza'),
+  const st = steps(s, p).find((x) => x.id === 'limpieza');
+  return h('div', { class: `card stack step-card ${st.state}`, id: 'step-limpieza' },
+    stepHead(st),
     h('div', { class: 'row between' },
       h('div', { class: 'staff' }, Array.from({ length: s.housekeepers }, () => h('div', { class: 'person' }, '🧹'))),
-      h('small', { class: 'muted' }, `Cada una limpia ~${ROOMS_PER_HOUSEKEEPER} cuartos por turno · ${money(HOUSEKEEPER_DAILY)} al día`)),
+      h('small', { class: 'muted' }, `Cada una limpia ~${ROOMS_PER_HOUSEKEEPER} cuartos por turno · ${money(HOUSEKEEPER_DAILY * (chapterFor(s) >= 2 ? s.team.wage : 1))} al día`)),
     h('div', { class: `alert ${short ? 'bad' : 'good'}` },
       short ? '⚠️ ' : '✅ ', `Cuartos por limpiar: ${p.dirtyStart}. Tu equipo puede limpiar: ${cap.real}.`),
     h('label', { class: 'toggle' },
       h('input', { type: 'checkbox', id: 'overtime', checked: s.overtime, onchange: (e) => { s.overtime = e.target.checked; save(); redraw(); } }),
       h('span', null, h('b', null, 'Horas extra hoy'), h('br'), h('small', { class: 'muted' }, 'Limpian 40% más. Cuesta 50% más y cansa al equipo.'))),
     h('div', { class: 'row', style: { gap: '8px' } },
-      h('button', { class: 'btn btn-secondary', style: { flex: 1 }, onclick: () => { hire(s); sfx('coin'); save(); toast(`Contrataste a una recamarista. Los primeros ${TRAINING_DAYS} días aprende y limpia menos.`, 3500); renderGame(); } }, '＋ Contratar'),
+      h('button', { class: 'btn btn-secondary', style: { flex: 1 }, onclick: async () => {
+        if (extraStaff({ ...s, housekeepers: s.housekeepers + 1 }) > 0) {
+          const ok = await modal((close) => h('div', { class: 'msg-card' },
+            botones(`Con <b>${s.housekeepers}</b> ${s.housekeepers === 1 ? 'recamarista' : 'recamaristas'} ya puedes limpiar tus <b>${totalRooms(s)} cuartos</b> aunque el hotel se llene. Otra persona te costaría <b>${money(480 * (chapterFor(s) >= 2 ? s.team.wage : 1))} al día</b> sin necesitarla. Si hoy faltan manos, prueba con <b>horas extra</b>.`),
+            h('button', { class: 'btn btn-primary btn-block', onclick: () => close(false) }, 'Tienes razón, mejor no'),
+            h('button', { class: 'btn btn-secondary btn-block', onclick: () => close(true) }, 'Contratar de todos modos')), { dismissable: true });
+          if (!ok) return;
+        }
+        hire(s); sfx('coin'); save(); toast(`Contrataste a una recamarista${recruitCost(s) ? ` (búsqueda: ${money(recruitCost(s))})` : ''}. Los primeros ${TRAINING_DAYS} días aprende y limpia menos.`, 3500); renderGame(); } }, '＋ Contratar'),
       h('button', { class: 'btn btn-secondary', style: { flex: 1 }, disabled: s.housekeepers <= 1, onclick: async () => {
         const ok = await modal((close) => h('div', { class: 'msg-card' },
           h('div', { class: 'quote', style: { fontSize: '24px' } }, '¿Despedir a una persona?'),
@@ -294,8 +379,9 @@ function staffCard(s, p, redraw) {
 }
 
 function projectionCard(s, p) {
-  return h('div', { class: 'card stack' },
-    h('span', { class: 'kicker' }, 'Lo que esperas hoy con estas decisiones'),
+  const st = steps(s, p).find((x) => x.id === 'abrir');
+  return h('div', { class: `card stack step-card ${st.state}`, id: 'step-abrir' },
+    stepHead(st),
     h('div', { class: 'projection' },
       proj('Cuartos vendidos', `${p.sold} de ${p.rooms}`),
       proj('Ingreso esperado', money(p.revenue)),
@@ -341,7 +427,9 @@ function evening(s, panel) {
       h('div', { class: 'kpis' },
         kpi('Ganancia del día', money(r.profit), prev ? r.profit - prev.profit : null, money),
         kpi('Cuartos vendidos', `${r.soldTotal}/${r.rooms}`, prev ? r.soldTotal - prev.soldTotal : null, (v) => String(v)),
-        kpi('Reseñas', r.reputation.toFixed(2) + '★', r.repDelta, (v) => v.toFixed(2))),
+        kpi('Reseñas', r.reputation.toFixed(2) + '★', r.repDelta, (v) => v.toFixed(2)),
+        r.chapter >= 7 ? kpi('RevPAR', money(r.revpar), prev?.revpar != null ? r.revpar - prev.revpar : null, money)
+          : r.chapter >= 5 ? kpi('Ingreso por huésped', money(r.revenue / (r.soldTotal || 1)), null, money) : null),
       reviewCard(r),
       h('div', null, h('b', null, '¿Por qué pasó esto?')),
       chainGroup(r.causes, 'good', '✅ Lo que salió bien'),
@@ -350,15 +438,26 @@ function evening(s, panel) {
       h('details', { class: 'more' },
         h('summary', null, 'Ver las cuentas del día ▾'),
         h('div', { class: 'pl', style: { marginTop: '8px' } },
-          line('Ingresos por cuartos', r.revenue),
+          line('Ingresos por cuartos', r.roomRevenue ?? r.revenue),
+          r.extras?.rest ? line('Restaurante', r.extras.rest) : null,
+          r.extras?.cross ? line('Venta cruzada (extras)', r.extras.cross) : null,
+          r.extras?.terrace ? line('Terraza', r.extras.terrace) : null,
           line('Gastos fijos del hotel', -r.costs.fixed),
           line('Costo por cuarto ocupado', -r.costs.variable),
-          line('Sueldos de limpieza', -r.costs.wages),
+          line(s.manager ? 'Sueldos (limpieza y gerente)' : 'Sueldos de limpieza', -r.costs.wages),
+          r.costs.marketing ? line('Redes y alianzas', -r.costs.marketing) : null,
+          r.costs.commission ? line('Comisiones y club', -r.costs.commission) : null,
+          r.costs.service ? line('Quejas resueltas por recepción', -r.costs.service) : null,
+          r.costs.restaurant ? line('Comida, chef y extras', -r.costs.restaurant) : null,
+          r.costs.maint ? line('Mantenimiento, seguro y controles', -r.costs.maint) : null,
+          r.costs.tax ? line('Impuesto al hospedaje', -r.costs.tax) : null,
+          r.costs.isr ? line('Impuesto sobre la ganancia', -r.costs.isr) : null,
+          r.costs.socio ? line('Parte de Don Rodrigo', -r.costs.socio) : null,
           r.costs.extra ? line('Gastos extra', -r.costs.extra) : null,
           r.costs.loan ? line('Pago al banco', -r.costs.loan) : null,
           r.costs.promises ? line('Promesa cumplida (uniformes)', -r.costs.promises) : null,
           h('div', { class: 'ln tot' }, h('span', null, 'Ganancia'), h('span', { class: 'num' }, money(r.profit))),
-          h('div', { class: 'ln' }, h('span', null, 'Precio promedio cobrado'), h('span', { class: 'num' }, money(r.adr))),
+          h('div', { class: 'ln' }, h('span', null, r.chapter >= 7 ? 'ADR (precio promedio cobrado)' : 'Precio promedio cobrado'), h('span', { class: 'num' }, money(r.adr))),
           h('div', { class: 'ln' }, h('span', null, 'Caja al cierre'), h('span', { class: 'num' }, money(r.cash)))))),
     h('div', { class: 'cta-bar' },
       h('button', { class: 'btn btn-primary btn-big btn-block', onclick: async () => {
@@ -432,7 +531,14 @@ function week(s, panel) {
         h('div', { class: 'ln' }, h('span', null, '🌧️ Día más flojo'), h('b', null, `${DAYS[worst.dow]} · ${money(worst.profit)}`)),
         h('div', { class: 'ln' }, h('span', null, '🧹 Huéspedes perdidos por cuartos sucios'), h('b', { style: { color: w.lostDirty ? 'var(--bad)' : 'var(--good)' } }, w.lostDirty)),
         h('div', { class: 'ln' }, h('span', null, '🛏️ Noches de cuarto vacías'), h('b', null, w.emptyNights)),
+        w.idleWages > 0 ? h('div', { class: 'ln' }, h('span', null, '🧹 Sueldos de limpieza que sobraron'), h('b', { style: { color: 'var(--bad)' } }, money(w.idleWages))) : null,
         h('div', { class: 'ln' }, h('span', null, '⭐ Reseñas'), h('b', null, `${w.repStart.toFixed(2)} → ${w.reputation.toFixed(2)}`)),
+        w.chapter >= 2 ? h('div', { class: 'ln' }, h('span', null, '👥 Ánimo del equipo'), h('b', null, Math.round(w.morale))) : null,
+        w.chapter >= 3 ? h('div', { class: 'ln' }, h('span', null, '📣 Ventas y marketing'), h('b', null, `${money(w.costs.marketing + w.costs.commission)} (${pct((w.costs.marketing + w.costs.commission) / (w.revenue || 1))})`)) : null,
+        w.chapter >= 4 ? h('div', { class: 'ln' }, h('span', null, '🛎️ Quejas sin resolver'), h('b', { style: { color: w.unresolved ? 'var(--bad)' : 'var(--good)' } }, w.unresolved)) : null,
+        w.chapter >= 5 && w.extrasRevenue ? h('div', { class: 'ln' }, h('span', null, '🍽️ Extras (restaurante y venta cruzada)'), h('b', null, money(w.extrasRevenue))) : null,
+        w.chapter >= 6 ? h('div', { class: 'ln' }, h('span', null, '🔧 Estado del hotel'), h('b', null, `${Math.round(w.condition ?? 100)}/100`)) : null,
+        w.chapter >= 7 ? h('div', { class: 'ln' }, h('span', null, '📐 ADR · RevPAR'), h('b', null, `${money(w.adr)} · ${money(w.revpar)}`)) : null,
         w.challenge ? h('div', { class: 'ln' }, h('span', null, `🎯 Reto: ${CHALLENGE_BY_ID[w.challenge.id].title}`), h('b', { style: { color: w.challenge.won ? 'var(--good)' : 'var(--bad)' } }, w.challenge.won ? '✅ Cumplido' : '❌ No esta vez')) : null)),
     h('div', { class: 'card stack' },
       h('span', { class: 'kicker' }, '📓 Mi diario de Directora'),

@@ -4,6 +4,7 @@ import { h } from '../util.js';
 import { BOARD } from '../data/world.js';
 import { RECORDED } from '../../audio/audios.js';
 import { loadSettings, saveSettings } from '../store.js';
+import { papaMarkup } from './avatar.js';
 
 export const app = { s: null, settings: loadSettings(), screen: null };
 
@@ -103,6 +104,7 @@ export function sfx(kind) {
 // ---- Board members ----
 export function avatar(who, size = '') {
   const b = BOARD[who];
+  if (who === 'papa') return h('div', { class: `avatar portrait-av ${size}`, style: { background: b.color }, 'aria-hidden': 'true', html: papaMarkup() });
   return h('div', { class: `avatar ${size}`, style: { background: b.color }, 'aria-hidden': 'true' }, b.initial);
 }
 

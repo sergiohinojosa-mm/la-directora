@@ -34,11 +34,11 @@ export function startPrologue(onDone, carry = null) {
       stepsBar(),
       h('div', { class: 'card', style: { display: 'grid', gap: '14px' } },
         h('div', { class: 'row' }, avatar('papa', 'sm'), avatar('alma', 'sm'), avatar('marcela', 'sm'),
-          h('div', null, h('b', null, 'El Consejo'), h('div', { class: 'muted', style: { fontSize: '13px' } }, 'Grupo Bahía Lunar'))),
+          h('div', null, h('b', null, 'El Consejo'), h('div', { class: 'muted', style: { fontSize: '13px' } }, 'Grupo Bahía Corasol'))),
         h('h2', { style: { fontSize: '30px' } }, carry ? `Año ${carry.year}: una nueva oportunidad` : 'Querida Luciana:'),
         h('p', null, carry
-          ? 'El hotel anterior cerró, pero lo que aprendiste se queda contigo. El Consejo confía en ti para intentarlo de nuevo en Bahía Lunar.'
-          : 'El Consejo quiere entrar al negocio de los hoteles en Bahía Lunar, un pueblo de playa que se está poniendo de moda. Te elegimos como Directora General.'),
+          ? 'El hotel anterior cerró, pero lo que aprendiste se queda contigo. El Consejo confía en ti para intentarlo de nuevo en Bahía Corasol.'
+          : 'El Consejo quiere entrar al negocio de los hoteles en Bahía Corasol, un pueblo de playa que se está poniendo de moda. Te elegimos como Directora General.'),
         h('p', null, 'Tu primera decisión es la más importante y la única que no se puede deshacer: ', h('b', null, 'dónde'), ' comprar el hotel. El Consejo pone una parte del dinero y el banco presta el resto.'),
         h('p', null, 'Después, cada día tú decides. Cada mes nos rindes cuentas. Mucho éxito, Directora.'),
         h('p', { class: 'muted' }, '— Papá, abuela Alma y mamá Marcela'),

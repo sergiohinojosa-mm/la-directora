@@ -18,7 +18,7 @@ export const LOCATIONS = [
     fixedMonthly: 520_000,
     varPerNight: 900,
     baseOcc: 0.68,
-    seasonAmp: 0.35,
+    seasonAmp: 0.25,
     elasticity: 2.6,
     mix: { lujo: 0.6, familias: 0.3, trabajo: 0.05, paso: 0.05 },
     rooms: [
@@ -39,7 +39,7 @@ export const LOCATIONS = [
     fixedMonthly: 180_000,
     varPerNight: 400,
     baseOcc: 0.62,
-    seasonAmp: 0.15,
+    seasonAmp: 0.12,
     elasticity: 3.2,
     mix: { lujo: 0.1, familias: 0.45, trabajo: 0.35, paso: 0.1 },
     rooms: [
@@ -53,13 +53,13 @@ export const LOCATIONS = [
   {
     id: 'carretera',
     name: 'Junto a la carretera',
-    zone: 'Entrada a Bahía Lunar',
+    zone: 'Entrada a Bahía Corasol',
     blurb: 'Barato y fácil de llegar en coche. Viajeros de paso y mochileros.',
     price: 2_500_000,
     fixedMonthly: 42_000,
     varPerNight: 200,
     baseOcc: 0.6,
-    seasonAmp: 0.1,
+    seasonAmp: 0.08,
     elasticity: 3.6,
     mix: { lujo: 0, familias: 0.15, trabajo: 0.35, paso: 0.5 },
     rooms: [{ id: 'std', name: 'Estándar', count: 12, ref: 850 }],
@@ -107,4 +107,5 @@ export const BOARD = {
   papa: { name: 'Papá', role: 'Presidente del Consejo', color: '#FFC24B', initial: 'P' },
   alma: { name: 'Abuela Alma', role: 'Consejera de Finanzas', color: '#2BB3C0', initial: 'A' },
   marcela: { name: 'Mamá Marcela', role: 'Consejera de Huéspedes y Equipo', color: '#7ED6A8', initial: 'M' },
+  rodrigo: { name: 'Don Rodrigo', role: 'Inversionista', color: '#C9B6F2', initial: 'R' },
 };

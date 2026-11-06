@@ -38,7 +38,7 @@
 <body>
 <main>
   <h1 id="title">🎙️ Grabadora del Consejo</h1>
-  <p class="sub">Cada frase es una lección que Luciana escucha en el juego justo después de vivirla. Grábala con tu voz, escúchala y, si te gusta, guárdala. Se descarga un archivo con el nombre de la lección.</p>
+  <p class="sub">Papá: cada frase es una lección que Luciana escucha en el juego justo después de vivirla. Grábala con tu voz, escúchala y, si te gusta, guárdala. Se descarga un archivo con el nombre de la lección; mándalo para ponerlo en el juego.</p>
   <div class="tip">💡 Consejo: dura 30 a 60 segundos. Di la frase y luego cuéntale una historia tuya, real y corta, de cuando la aprendiste. Termina repitiendo la frase.</div>
 
   <div class="card">
@@ -71,8 +71,8 @@
 import { LESSONS } from './js/data/lessons.js';
 import { BOARD } from './js/data/world.js';
 
-// ?quien=papa | alma | marcela muestra solo las lecciones de esa persona.
-const QUIEN = (new URLSearchParams(location.search).get('quien') || '').toLowerCase();
+// Solo Papá graba: las lecciones de Alma y Marcela se leen en pantalla.
+const QUIEN = (new URLSearchParams(location.search).get('quien') || 'papa').toLowerCase();
 const F = LESSONS.filter((l) => !BOARD[QUIEN] || l.by === QUIEN);
 const KEY = 'grabadora.directora.hechas';
 let done = {};
@@ -94,7 +94,7 @@ function show() {
   $('bar').style.width = (100 * n) / F.length + '%';
   $('count').textContent = `${n} de ${F.length} grabadas`;
   $('list').innerHTML = F.map((x, k) => `<li data-k="${k}" class="${done[x.id] ? 'done' : ''}">${BOARD[x.by].name} · “${x.phrase}”</li>`).join('');
-  if (!f) { $('phrase').textContent = '¡Terminaste todas! Gracias. Mándale los archivos a Sergio. 💛'; $('meaning').textContent = ''; $('when').textContent = ''; $('rec').disabled = true; return; }
+  if (!f) { $('phrase').textContent = '¡Terminaste todas! Gracias. Junta los archivos descargados para ponerlos en el juego. 💛'; $('meaning').textContent = ''; $('when').textContent = ''; $('rec').disabled = true; return; }
   $('who').textContent = BOARD[f.by].name;
   $('num').textContent = `${i + 1} de ${F.length} · archivo ${f.id}`;
   $('phrase').textContent = `“${f.phrase}”`;
