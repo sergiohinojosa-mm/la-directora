@@ -63,11 +63,11 @@ function countLevel(s, min) {
 // Rank grows with stars, badges and mastered lessons.
 export const RANKS = [
   { name: 'Becaria', points: 0 },
-  { name: 'Gerente Junior', points: 8 },
-  { name: 'Gerente de Hotel', points: 25 },
-  { name: 'Directora General', points: 55 },
-  { name: 'Directora de Cadena', points: 100 },
-  { name: 'Magnate Hotelera', points: 160 },
+  { name: 'Gerente Junior', points: 10 },
+  { name: 'Gerente de Hotel', points: 35 },
+  { name: 'Directora General', points: 75 },
+  { name: 'Directora de Cadena', points: 140 },
+  { name: 'Magnate Hotelera', points: 215 },
 ];
 
 export function points(s) {

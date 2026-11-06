@@ -283,7 +283,7 @@ function tipText(s, p, asked) {
   if (ch >= 3 && s.mkt.ota && fcToday > rooms * 1.1) return recall('canal', 'Hoy te vas a llenar de todos modos. ¿Necesitas las agencias hoy? Cada reserva por agencia les deja 18%.');
   if (ch >= 6 && (s.maint.condition ?? 100) < 65) return recall('techo', `Tu hotel está en <b>${Math.round(s.maint.condition)}/100</b>. Con poco mantenimiento, las cosas se descomponen en el peor momento.`);
   if (ch >= 2 && s.morale < 55 && s.team.wage < 1) return recall('retener', 'Tu equipo está cansado y gana menos que en otros hoteles. Alguien podría renunciar.');
-  if (ch >= 5 && Object.values(s.offers).filter(Boolean).length > 2) return recall('cross_sell', 'Estás ofreciendo muchos extras a la vez. Con uno o dos, los huéspedes compran más y se fastidian menos.');
+  if (ch >= 5 && Object.values(s.offers).filter(Boolean).length > 2) return recall(s.lessons.menos_es_mas?.level ? 'menos_es_mas' : 'cross_sell', 'Estás ofreciendo muchos extras a la vez. Con uno o dos, los huéspedes compran más y se fastidian menos.');
   if (ch >= 7 && s.comp.open && s.prices[L.rooms[0].id] < chainPrice(s)) return recall('diferencia', `Estás cobrando menos que GlobalStay (${money(chainPrice(s))}). ¿De verdad necesitas competir por precio?`);
   if (s.day === 2) return 'Cada cuarto ocupado anoche hay que <b>limpiarlo hoy</b>. Si no alcanza tu equipo, ese cuarto no se vende.';
   if (s.day === 3) return 'Mira el <b>pronóstico</b>: las barras rojas son días con más gente que cuartos. ¿Cobrarías lo mismo esos días?';

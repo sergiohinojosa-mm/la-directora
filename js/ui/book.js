@@ -1,7 +1,7 @@
 // Libro de Lecciones: lesson cards (by level), badges and career rank.
 
 import { h } from '../util.js';
-import { LESSONS, CHAPTER_NAMES, LEVELS } from '../data/lessons.js';
+import { LESSONS, CHAPTER_NAMES, LEVELS, lessonMonth } from '../data/lessons.js';
 import { BADGES, RANKS, rank } from '../data/badges.js';
 import { BOARD } from '../data/world.js';
 import { saveGame } from '../store.js';
@@ -32,11 +32,12 @@ export function renderBook(back) {
 
 function lessons(s) {
   const groups = {};
-  for (const l of LESSONS) (groups[l.chapter] ||= []).push(l);
+  for (const l of LESSONS) (groups[lessonMonth(l)] ||= []).push(l);
+  const title = (m, list) => (m === '0' ? 'Prólogo' : m === '13' ? 'Año 2' : `Mes ${m} · ${CHAPTER_NAMES[list[0].chapter]}`);
   return h('div', { class: 'stack', style: { gap: '20px' } },
     h('p', { class: 'muted-dark' }, 'Cada lección tiene 3 niveles: Descubierta (la viviste), Aplicada (la usaste en una decisión) y Dominada (la usaste 3 veces: carta dorada).'),
-    Object.entries(groups).map(([ch, list]) => h('div', { class: 'stack' },
-      h('h3', { style: { fontSize: '20px' } }, CHAPTER_NAMES[ch]),
+    Object.entries(groups).map(([month, list]) => h('div', { class: 'stack' },
+      h('h3', { style: { fontSize: '20px' } }, title(month, list)),
       h('div', { class: 'lesson-grid' }, list.map((l) => {
         const st = s.lessons[l.id];
         const lv = st?.level ?? 0;

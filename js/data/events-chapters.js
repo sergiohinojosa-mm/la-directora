@@ -1,6 +1,7 @@
 // Event cards for chapters 2–8. `ch` is the first chapter where a card can appear; `when` adds
 // conditions; `forced` cards are triggered by the systems (a resignation, a breakdown, a cash gap)
 // instead of drawn at random. An option with `wise` is the one that applies the card's lesson.
+// `month` holds a card back until that month of the year, so a two-month chapter has news in both.
 
 import { clamp, money } from '../util.js';
 import { potRev, avgRef, STAFF_NAMES, recruitCost, trainCost, MAX_SKILL, WAGES, repairCost } from '../engine/systems.js';
@@ -43,11 +44,11 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'pelea', ch: 2, kind: 'equipo', icon: '😤', negative: true,
+    id: 'pelea', ch: 2, kind: 'equipo', icon: '😤', negative: true, lesson: 'conflicto', lessonCtx: 'Dos recamaristas se pelearon por los turnos.',
     title: 'Dos recamaristas se pelean por los turnos',
     text: 'Las dos quieren el turno de la mañana. Ya no se hablan y se nota en la limpieza.',
     options: [
-      { label: 'Reunirlas y acordar turnos que roten', fx: [['Ánimo +', 'up'], ['Hoy limpian menos', 'q']],
+      { label: 'Reunirlas y acordar turnos que roten', wise: true, fx: [['Ánimo +', 'up'], ['Hoy limpian menos', 'q']],
         apply: (s) => { mood(s, 5); add(s, { type: 'cleanMult', mult: 0.9, label: 'Reunión del equipo' }); return 'Acordaron rotar cada semana. Hoy se fue un rato en la plática, pero el problema se acabó.'; } },
       { label: 'Decidir tú sin escucharlas', fx: [['Rápido', 'up'], ['Ánimo −', 'dn']],
         apply: (s) => { mood(s, -5); return 'Una quedó contenta y la otra muy molesta.'; } },
@@ -96,13 +97,13 @@ export const CHAPTER_EVENTS = [
 
   // ---------------- Capítulo 3 · Que nos encuentren ----------------
   {
-    id: 'ota_destacado', once: true, ch: 3, kind: 'mercado', icon: '🌐', when: (s) => s.mkt.ota,
+    id: 'ota_destacado', once: true, ch: 3, kind: 'mercado', icon: '🌐', when: (s) => s.mkt.ota, lesson: 'prueba_chico', lessonCtx: 'La agencia te ofreció aparecer destacada pagando más comisión.',
     title: 'La agencia ofrece "posición destacada"',
     text: 'Te pondrían hasta arriba en la búsqueda… si les pagas 25% de comisión en lugar de 18%, durante dos semanas.',
     options: [
       { label: 'Aceptar', fx: [['Demanda ++', 'up'], ['Comisión ++', 'dn']],
         apply: (s) => { add(s, { type: 'demand', mult: 1.12, to: s.day + 13, label: 'Posición destacada en agencia' }); add(s, { type: 'dailyCost', amount: k(s, 0.02), to: s.day + 13, label: 'Comisión extra de la agencia' }); return 'Dos semanas arriba en la búsqueda, pagando más comisión.'; } },
-      { label: 'Negociar: 21% y una semana de prueba', fx: [['Demanda +', 'up'], ['Comisión +', 'dn']],
+      { label: 'Negociar: 21% y una semana de prueba', wise: true, fx: [['Demanda +', 'up'], ['Comisión +', 'dn']],
         apply: (s) => { add(s, { type: 'demand', mult: 1.08, to: s.day + 6, label: 'Posición destacada (prueba)' }); add(s, { type: 'dailyCost', amount: k(s, 0.008), to: s.day + 6, label: 'Comisión extra de la agencia' }); return 'Aceptaron la prueba. Mide si valió la pena.'; } },
       { label: 'No, gracias', fx: [['Sin cambio', 'q']], apply: () => 'Sigues con la comisión normal.' },
     ],
@@ -217,7 +218,7 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'grita_recamarista', ch: 4, kind: 'equipo', icon: '🗯️', negative: true, lesson: 'cliente_respeto', lessonCtx: 'Un huésped le gritó a una recamarista de tu equipo.',
+    id: 'grita_recamarista', ch: 4, kind: 'equipo', icon: '🗯️', negative: true, lesson: 'defiende', lessonCtx: 'Un huésped le gritó a una recamarista de tu equipo.',
     title: 'Un huésped le grita a una recamarista',
     text: (s) => `${name(s, 1)} está llorando. El huésped dice que tardó mucho en limpiar su cuarto.`,
     options: [
@@ -230,11 +231,11 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'cancela_enfermo', ch: 4, kind: 'crisis', icon: '🤒', when: (s) => s.policy.cancel !== 'flexible',
+    id: 'cancela_enfermo', ch: 4, kind: 'crisis', icon: '🤒', when: (s) => s.policy.cancel !== 'flexible', lesson: 'reglas_claras', lessonCtx: 'Una familia canceló porque su hijo se enfermó, y tu política decía qué pasaba.',
     title: 'Una familia cancela porque el niño se enfermó',
     text: (s) => `Tu política de cancelación es ${s.policy.cancel}: ${s.policy.cancel === 'estricta' ? 'no se regresa el dinero' : 'se regresa la mitad'}. Te piden que les regreses todo.`,
     options: [
-      { label: 'Seguir la política, pero ofrecer cambiar la fecha', fx: [['Justo', 'up'], ['Reseñas +', 'up']],
+      { label: 'Seguir la política, pero ofrecer cambiar la fecha', wise: true, fx: [['Justo', 'up'], ['Reseñas +', 'up']],
         apply: (s) => { rep(s, 0.03); return 'Les guardaste el dinero para otra fecha. Regresarán.'; } },
       { label: 'Regresarles todo', fx: [['Caja −', 'dn'], ['Reseñas +', 'up']],
         apply: (s) => { s.cash -= priceStd(s) * 2; rep(s, 0.02); return 'Agradecidos. Pero las reglas valen menos si cambian cada vez.'; } },
@@ -270,18 +271,18 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'critico', ch: 5, kind: 'oportunidad', icon: '🍷', when: (s) => s.rest.open,
+    id: 'critico', month: 6, ch: 5, kind: 'oportunidad', icon: '🍷', when: (s) => s.rest.open, lesson: 'calidad_constante', lessonCtx: 'Un crítico de comida llegó a tu restaurante sin avisar.',
     title: 'Viene un crítico de comida',
     text: 'Escribe en la revista más leída de la región. Hoy cena en tu restaurante.',
     options: [
-      { label: 'Atenderlo igual que a todos', fx: [['Depende de tu menú', 'q']],
+      { label: 'Atenderlo igual que a todos', wise: true, fx: [['Depende de tu menú', 'q']],
         apply: (s) => { const good = s.rest.menu >= 1; add(s, { type: 'demand', mult: good ? 1.08 : 0.97, to: s.day + 7, label: 'Reseña del crítico' }); return good ? 'Escribió que tu restaurante "vale el viaje".' : 'Escribió que la comida es "correcta pero olvidable".'; } },
       { label: 'Prepararle un menú especial', fx: [['Caja −', 'dn'], ['Reseña buena', 'up']],
         apply: (s) => { s.cash -= k(s, 0.03); add(s, { type: 'demand', mult: 1.06, to: s.day + 7, label: 'Reseña del crítico' }); return 'Le encantó, aunque los demás comensales comieron lo de siempre.'; } },
     ],
   },
   {
-    id: 'boda', ch: 5, kind: 'oportunidad', icon: '💒',
+    id: 'boda', month: 6, ch: 5, kind: 'oportunidad', icon: '💒', lesson: 'riesgo_premio', lessonCtx: 'Te ofrecieron una boda: mucho dinero en un día, y mucho trabajo.',
     title: 'Quieren hacer una boda en tu hotel',
     text: (s) => `Rentarían todo el hotel el próximo sábado con comida para 80 invitados. Pagan ${money(k(s, 1.6))}, pero la comida y el personal extra cuestan ${money(k(s, 1.05))} y ese sábado no vendes cuartos.`,
     options: [
@@ -329,7 +330,7 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'proteccion_civil', ch: 6, kind: 'gobierno', icon: '🧯', lesson: 'seguridad', lessonCtx: 'Protección Civil revisó tu hotel y encontró extintores vencidos.',
+    id: 'proteccion_civil', month: 8, ch: 6, kind: 'gobierno', icon: '🧯', lesson: 'seguridad', lessonCtx: 'Protección Civil revisó tu hotel y encontró extintores vencidos.',
     title: 'Llegó Protección Civil',
     text: (s) => `Encontraron extintores vencidos y una salida de emergencia bloqueada con cajas.${s.maint.level === 0 ? ' Notaron que no hay mantenimiento.' : ''}`,
     options: [
@@ -400,11 +401,11 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'roban_personal', ch: 7, kind: 'equipo', icon: '🧲', negative: true,
+    id: 'roban_personal', month: 10, ch: 7, kind: 'equipo', icon: '🧲', negative: true, lesson: 'talento', lessonCtx: 'Otro hotel quiso llevarse a una de tus mejores recamaristas.',
     title: (s) => `GlobalStay le ofrece trabajo a ${name(s, 2)}`,
     text: 'Le ofrecen 20% más de sueldo. Es una de tus mejores recamaristas.',
     options: [
-      { label: 'Hablar con ella: capacitarla y darle un puesto de líder', fx: [['Costo +', 'dn'], ['Ánimo +', 'up']],
+      { label: 'Hablar con ella: capacitarla y darle un puesto de líder', wise: true, fx: [['Costo +', 'dn'], ['Ánimo +', 'up']],
         apply: (s) => { s.cash -= 3000; s.team.skill = Math.min(MAX_SKILL, s.team.skill + 1); mood(s, 4); return 'Se queda como líder de limpieza. Le importaba crecer, no solo el dinero.'; } },
       { label: 'Igualar la oferta solo para ella', fx: [['Costo +', 'dn'], ['Otros se enteran', 'dn']],
         apply: (s) => { add(s, { type: 'dailyCost', amount: 100, to: s.day + 365, label: 'Aumento especial' }); mood(s, -4); return 'Se queda, pero las demás se enteraron y se sienten menos.'; } },
@@ -413,7 +414,7 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'oferta_compra', once: true, ch: 7, kind: 'mercado', icon: '💼', lesson: 'largo_plazo', lessonCtx: 'GlobalStay ofreció comprarte el hotel.',
+    id: 'oferta_compra', month: 10, once: true, ch: 7, kind: 'mercado', icon: '💼', lesson: 'valor_hotel', lessonCtx: 'GlobalStay ofreció comprarte el hotel.',
     title: 'GlobalStay quiere comprar tu hotel',
     text: 'Ofrecen pagarle al Consejo lo mismo que costó el hotel. "Así se acaba la competencia", dicen.',
     options: [
@@ -439,7 +440,7 @@ export const CHAPTER_EVENTS = [
 
   // ---------------- Capítulo 8 · El Consejo dividido ----------------
   {
-    id: 'rodrigo_recorte', once: true, ch: 8, kind: 'consejo', icon: '✂️', lesson: 'mismo_barco', lessonCtx: 'Don Rodrigo te pidió recortar sueldos para ganar más este mes.',
+    id: 'rodrigo_recorte', once: true, ch: 8, kind: 'consejo', icon: '✂️', lesson: 'convencer', lessonCtx: 'Don Rodrigo te pidió recortar sueldos para ganar más este mes.',
     title: 'Don Rodrigo quiere recortar sueldos',
     text: '"Si bajamos 20% los sueldos, ganamos más este mes. Los números mandan."',
     options: [
@@ -452,11 +453,11 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'alma_dividendos', once: true, ch: 8, kind: 'consejo', icon: '🧁',
+    id: 'alma_dividendos', month: 12, once: true, ch: 8, kind: 'consejo', icon: '🧁', lesson: 'escucha_todos', lessonCtx: 'Alma y Marcela no se pusieron de acuerdo sobre qué hacer con la ganancia.',
     title: 'Alma quiere repartir ganancias',
     text: '"Los dueños pusieron su dinero hace casi un año. Es justo que reciban algo." Marcela opina que primero hay que cuidar al equipo.',
     options: [
-      { label: 'Escuchar a las dos y prometer decidirlo con números en la junta', fx: [['Confianza +', 'up']],
+      { label: 'Escuchar a las dos y prometer decidirlo con números en la junta', wise: true, fx: [['Confianza +', 'up']],
         apply: (s) => { conf(s, 3); return 'Las dos aceptaron. En la junta del mes 12 decidirás cuánto repartir.'; } },
       { label: 'Darle la razón a Alma', fx: [['Ánimo del equipo −', 'dn']],
         apply: (s) => { mood(s, -3); return 'Alma sonrió. Marcela te recordó que el equipo también rema.'; } },

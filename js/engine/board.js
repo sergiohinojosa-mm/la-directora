@@ -4,7 +4,7 @@
 import { clamp, money, pct, DAYS, DAYS_PER_MONTH } from '../util.js';
 import { loc, weekCost, season } from './sim.js';
 import { discover, applyLesson } from './lessons.js';
-import { LESSONS, RECALL } from '../data/lessons.js';
+import { LESSONS, LESSON_BY_ID, RECALL } from '../data/lessons.js';
 import { chapterFor } from '../data/chapters.js';
 import {
   PROJECTS, projectEstimate, paybackMonths, newLoanPayment, startProject, potRev, OTA_FEE,
@@ -235,8 +235,14 @@ export function resolvePlan(s, m, papaYes) {
   const yes = [v.alma.yes, v.marcela.yes, v.rodrigo.yes, papaYes].filter(Boolean).length;
   const approved = yes >= 3;
   s.plan.lastVote = { month: m.month, yes, approved };
+  const ctx = `${yes} de 4 consejeros votaron a favor de tu plan. Cada uno revisó un número distinto.`;
+  if (!discover(s, 'convencer', ctx) && approved) applyLesson(s, 'convencer', `Convenciste al Consejo con números: ${yes} de 4 votaron a favor de tu plan.`);
+  if (papaYes) applyLesson(s, 'recuperacion', 'Le explicaste a Papá en cuántos meses se recupera la inversión.');
+  if (yes === 4) applyLesson(s, 'escucha_todos', 'Tu plan cuidó lo que le importa a cada consejero: los cuatro votaron a favor.');
   if (approved) {
     startProject(s);
+    if (s.cash >= 2 * weekCost(s)) applyLesson(s, 'riesgo_premio', `Apostaste en grande con tu plan y la caja quedó protegida con ${money(s.cash)}.`);
+    discover(s, 'crecer', `El Consejo aprobó tu plan: empieza la obra de ${PROJECTS[s.plan.project].short.toLowerCase()}, que cuesta ${money(v.cost)}.`);
     applyLesson(s, 'mismo_barco', `Convenciste al Consejo con números: ${yes} de 4 votaron a favor de tu plan.`);
     applyLesson(s, 'largo_plazo', 'Hiciste un plan que cuesta hoy y paga durante años.');
   } else s.plan.status = 'rejected';
@@ -266,6 +272,10 @@ export function payDividends(s, choice, teamBonus) {
   const delta = (choice === 1 ? 6 : choice === 2 ? (safe ? 4 : -6) : -2) + (teamBonus ? 2 : 0);
   s.confidence = clamp(s.confidence + delta, 0, 100);
   if (safe && choice >= 1) applyLesson(s, 'mismo_barco', `Repartiste ${money(amount)} a los dueños y la caja quedó con ${money(s.cash)}: todos ganan.`);
+  const ctx = choice === 0 ? `No repartiste dividendos: los ${money(s.cash)} se quedan en el hotel.` : `Repartiste ${money(amount)} a los dueños y la caja quedó con ${money(s.cash)}${safe ? '.' : ': menos de dos semanas de gastos.'}`;
+  if (!discover(s, 'dividendos', ctx) && safe && choice >= 1) applyLesson(s, 'dividendos', ctx);
+  if (choice <= 1) applyLesson(s, 'reinvertir', `Dejaste ${money(s.cash)} en el hotel para el próximo año.`);
+  if (teamBonus) applyLesson(s, 'gracias_equipo', `Le diste un bono de ${money(bonus)} a tu equipo por su año de trabajo.`);
   if (!safe) discover(s, 'cash_king', `Después de repartir dividendos, la caja quedó en ${money(s.cash)}: menos de dos semanas de gastos.`);
   s.dividends = [...(s.dividends || []), { year: Math.ceil(s.day / 336), amount, bonus }];
   return { amount, bonus, notes, delta };
@@ -351,6 +361,13 @@ export function resolveMeeting(s, m, picked, answers) {
   delta += correct * 3 - (qs.length - correct) * 2;
   const numbers = qs.filter((q) => !q.recall);
   if (numbers.every((q) => q.options[answers[qs.indexOf(q)]]?.correct)) applyLesson(s, 'numeros_historia', 'Respondiste bien las preguntas del Consejo leyendo tus números.');
+  // Año 2: completing a saying she learned shows she can explain it.
+  const rq = qs.find((q) => q.recall);
+  if (m.month >= 13 && rq && rq.options[answers[qs.indexOf(rq)]]?.correct) {
+    const ctx = `Completaste bien la frase “${LESSON_BY_ID[rq.recall].phrase}” frente al Consejo.`;
+    if (!discover(s, 'mentora', ctx)) applyLesson(s, 'mentora', ctx);
+  }
+  if (m.month >= 13 && stars >= 2) applyLesson(s, 'metas', `Cumpliste la meta del mes con número y fecha: ${stars} estrellas.`);
 
   const before = s.confidence;
   s.confidence = clamp(s.confidence + delta, 0, 100);

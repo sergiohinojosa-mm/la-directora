@@ -3,16 +3,17 @@
 import { rng, pickWeighted, calendar, clamp, money, DAYS_PER_MONTH } from '../util.js';
 import { EVENTS, EVENT_BY_ID, txt } from '../data/events.js';
 import { simulateDay, summarize, weekCost, forecast, refEff, totalRooms, preview, cleaningCapacity, roomsOf } from './sim.js';
-import { afterDay, afterWeek, afterMonth, afterHire, discover, applyLesson, level } from './lessons.js';
+import { afterDay, afterWeek, afterMonth, afterHire, discover, applyLesson, level, monthBeats } from './lessons.js';
 import { checkBadges } from '../data/badges.js';
 import { CHALLENGES, CHALLENGE_BY_ID } from '../data/challenges.js';
 import { hire as hireOne, fire as fireOne } from './sim.js';
-import { chapterFor } from '../data/chapters.js';
+import { chapterFor, hotelMonth } from '../data/chapters.js';
 import { ADVICE } from '../data/advice.js';
 import {
   ensure, quitChance, STAFF_NAMES, breakdownChance, potRev, trainCost, canTrain, restaurantInvestment,
-  uniqueCost, finishProject, managerCost,
+  uniqueCost, finishProject, managerCost, UNIQUE, PROJECTS, paybackMonths, projectEstimate, newLoanPayment, SOCIO_SHARE,
 } from './systems.js';
+import { mandateFor } from './board.js';
 
 const EVENT_CHANCE = 0.5;
 
@@ -40,6 +41,8 @@ function forcedEvent(s) {
     s.team.quits.push(s.day);
     return 'renuncia';
   }
+  // The first breakdown always comes in the chapter's first month: things wear out even when you don't see it.
+  if (ch === 6 && !(s.maint.breakdowns || []).length && calendar(s.day).dayOfMonth >= 10) return 'falla_aire';
   if (ch >= 6 && rng(s) < breakdownChance(s)) return s.eventsSeen.filter((e) => e === 'falla_aire').length <= s.eventsSeen.filter((e) => e === 'falla_agua').length ? 'falla_aire' : 'falla_agua';
   if (ch >= 6 && !s.flags.lowSeasonTold && calendar(s.day).dayOfMonth >= 3) { s.flags.lowSeasonTold = true; return 'temporada_baja'; }
   if (ch >= 6 && !s.maint.controls && !s.flags.faltanteShown && s.maint.leak - s.maint.leakFound >= potRev(s) * 0.12) { s.flags.faltanteShown = true; return 'faltante'; }
@@ -63,6 +66,7 @@ export function startMorning(s) {
   const ch = chapterFor(s);
   if (s.plan.status === 'building' && s.day >= s.plan.readyDay) {
     finishProject(s);
+    if (s.cash > weekCost(s)) applyLesson(s, 'crecer', `Terminó la obra y tu caja siguió con ${money(s.cash)}.`);
     s.notices.push(`🎉 ¡Terminó la obra! ${s.plan.project === 'cuartos' ? 'Ya tienes 4 cuartos más para vender.' : s.plan.project === 'spa' ? 'Tu spa ya está abierto.' : 'Tu terraza ya está abierta.'}`);
     checkBadges(s, 'project');
   }
@@ -78,7 +82,7 @@ export function startMorning(s) {
   if (rng(s) > EVENT_CHANCE) return quickDecision(s);
   const recent = s.eventsSeen.slice(-10);
   const d = difficulty(s);
-  const pool = EVENTS.filter((e) => !e.forced && !e.quick && !(e.once && s.eventsSeen.includes(e.id)) && (e.ch ?? 1) <= ch && s.day >= (e.minDay ?? 0) && !recent.includes(e.id) && (!e.when || e.when(s)));
+  const pool = EVENTS.filter((e) => !e.forced && !e.quick && !(e.once && s.eventsSeen.includes(e.id)) && (e.ch ?? 1) <= ch && hotelMonth(s) >= (e.month ?? 0) && s.day >= (e.minDay ?? 0) && !recent.includes(e.id) && (!e.when || e.when(s)));
   if (!pool.length) return quickDecision(s);
   // Cards of the current chapter come up more often, so each chapter feels new.
   const ev = pickWeighted(s, pool, (e) => (e.negative ? 1 + d * 0.6 : 1 - d * 0.4) * ((e.ch ?? 1) === ch ? 2.5 : 1));
@@ -115,9 +119,18 @@ export function resolveEvent(s, optionIndex) {
   s.event.chosen = optionIndex;
   if (ev.negative) s.flags.badEventDay = s.day;
   if (ev.id.startsWith('falla')) s.maint.breakdowns = [...(s.maint.breakdowns || []), s.day];
+  let fresh = false;
   if (ev.lesson) {
     const ctx = txt(ev.lessonCtx, s);
-    if (!discover(s, ev.lesson, ctx) && opt.wise) applyLesson(s, ev.lesson, opt.wiseCtx || ctx);
+    fresh = discover(s, ev.lesson, ctx);
+    if (!fresh && opt.wise) applyLesson(s, ev.lesson, opt.wiseCtx || ctx);
+  }
+  // Breakdowns teach what insurance is for (once the repair lesson itself is known).
+  if (ev.id.startsWith('falla')) {
+    if (s.maint.insurance) {
+      const ctx = 'Se descompuso algo y el seguro pagó 70% de la reparación.';
+      if (!discover(s, 'seguro', ctx)) applyLesson(s, 'seguro', ctx);
+    } else if (!fresh) discover(s, 'seguro', 'Se descompuso algo otra vez y pagaste toda la reparación, porque no tenías seguro.');
   }
   checkBadges(s, 'event');
 }
@@ -158,6 +171,10 @@ export function train(s) {
   s.mods.push({ type: 'cleanMult', mult: 0.75, from: s.day, to: s.day, label: 'Capacitación del equipo' });
   const ctx = `Capacitaste a tu equipo: costó ${money(cost)} y hoy limpian menos, pero desde mañana limpian ${s.team.skill * 6}% más rápido para siempre.`;
   if (!discover(s, 'largo_plazo', ctx)) applyLesson(s, 'largo_plazo', ctx);
+  if (chapterFor(s) >= 7) {
+    const grow = 'Capacitaste a tu equipo con GlobalStay enfrente buscando gente: quien aprende contigo tiene razones para quedarse.';
+    if (!discover(s, 'talento', grow)) applyLesson(s, 'talento', grow);
+  }
   checkBadges(s, 'hire');
   return true;
 }
@@ -166,6 +183,7 @@ export function train(s) {
 export function act(s, what, value) {
   ensure(s);
   const before = s.weeks[s.weeks.length - 1];
+  const wasOff = { ota: !s.mkt.ota, alliance: !s.mkt.alliance, club: !s.mkt.club, social: !s.mkt.social }[what];
   switch (what) {
     case 'wage': s.team.wage = value; break;
     case 'ota': case 'alliance': case 'club': {
@@ -183,14 +201,47 @@ export function act(s, what, value) {
     case 'buy': s.rest.buy = value; break;
     case 'offer': s.offers[value.id] = value.on; break;
     case 'maint': s.maint.level = value; break;
-    case 'insurance': s.maint.insurance = value; break;
+    case 'insurance': {
+      s.maint.insurance = value;
+      if (value) discover(s, 'seguro', 'Contrataste un seguro: pagas poco cada día y, si algo grande se rompe, cubre 70% de la reparación.');
+      break;
+    }
     case 'controls': s.maint.controls = value; break;
-    case 'unique': s.cash -= uniqueCost(s); s.comp.unique = value; checkBadges(s, 'project'); break;
-    case 'auto': s.comp.auto = { ...s.comp.auto, ...value }; if (s.comp.auto.on) autoPrice(s); break;
+    case 'unique': {
+      s.cash -= uniqueCost(s);
+      s.comp.unique = value;
+      const name = (UNIQUE[s.locationId].find(([id]) => id === value) || [])[1] || 'tu experiencia';
+      discover(s, 'experiencia', `Creaste ${name.replace(/^\S+\s/, '')}: algo que GlobalStay no tiene.`);
+      checkBadges(s, 'project');
+      break;
+    }
+    case 'auto': {
+      const was = s.comp.auto.on;
+      s.comp.auto = { ...s.comp.auto, ...value };
+      if (s.comp.auto.on) autoPrice(s);
+      if (s.comp.auto.on && !was) discover(s, 'reglas_precio', `Encendiste tus reglas: subir ${Math.round(s.comp.auto.up * 100)}% cuando viene más gente que cuartos y bajar ${Math.round(s.comp.auto.down * 100)}% cuando viene poca.`);
+      break;
+    }
     case 'overbook': s.comp.overbook = value; break;
-    case 'project': s.plan.project = value; break;
-    case 'funding': s.plan.funding = value; break;
-    case 'negotiate': s.plan.negotiated = value; break;
+    case 'project': {
+      s.plan.project = value;
+      const p = paybackMonths(s, value);
+      const ctx = `La obra (${PROJECTS[value].short.toLowerCase()}) cuesta ${money(PROJECTS[value].cost(s))} y dejaría unos ${money(Math.max(0, projectEstimate(s, value)))} al mes: ${p === Infinity ? 'nunca se pagaría' : `se pagaría en ${p} ${p === 1 ? 'mes' : 'meses'}`}.`;
+      discover(s, 'recuperacion', ctx);
+      break;
+    }
+    case 'funding': {
+      s.plan.funding = value;
+      const cost = s.plan.project ? PROJECTS[s.plan.project].cost(s) : 0;
+      if (value === 'banco' && cost) discover(s, 'deuda', `Con el préstamo, tu pago al banco subiría a ${money(s.payment + newLoanPayment(s, cost))} al mes durante 5 años.`);
+      if (value === 'socio') discover(s, 'socio', `Don Rodrigo pondría el dinero de la obra y se llevaría ${Math.round(SOCIO_SHARE * 100)}% de la ganancia de cada mes.`);
+      break;
+    }
+    case 'negotiate': {
+      s.plan.negotiated = value;
+      if (value) applyLesson(s, 'deuda', 'Negociaste con el banco una tasa de interés más baja antes de pedir prestado.');
+      break;
+    }
     case 'manager': {
       s.manager = value;
       if (value) {
@@ -200,6 +251,18 @@ export function act(s, what, value) {
       break;
     }
     default: break;
+  }
+  // Ventas: turning a channel on is a small test worth measuring for a week before the next one.
+  if (wasOff && value && chapterFor(s) >= 3) {
+    const label = { ota: 'las agencias en línea', alliance: 'las alianzas', club: 'el club de huéspedes', social: 'los anuncios en redes' }[what];
+    const waited = s.flags.lastChannelOn != null && s.day - s.flags.lastChannelOn >= 7;
+    if (!discover(s, 'prueba_chico', `Encendiste ${label}. Mídelo una semana antes de agregar otro canal.`) && waited) {
+      applyLesson(s, 'prueba_chico', `Mediste una semana antes de encender ${label}.`);
+    }
+    s.flags.lastChannelOn = s.day;
+  }
+  if (chapterFor(s) >= 7 && value && ['unique', 'auto', 'menu', 'offer'].includes(what) && (what !== 'offer' || value.on)) {
+    applyLesson(s, 'innovar', 'Probaste algo nuevo en tu hotel en lugar de hacer lo de siempre.');
   }
   checkBadges(s, 'act');
 }
@@ -277,6 +340,7 @@ export function nextDay(s) {
   s.day += 1;
   const ch = chapterFor(s);
   if (ch > chBefore) startChapter(s, ch);
+  monthBeats(s);
   if (calendar(s.day).dow === 0 || !s.challenge) pickChallenge(s);
   startMorning(s);
 }
@@ -284,7 +348,10 @@ export function nextDay(s) {
 // What changes in the hotel when a new chapter begins (the story screen is in ui/chapter.js).
 export function startChapter(s, ch) {
   ensure(s);
-  if (ch >= 6 && s.maint.condition == null) s.maint.condition = 72;
+  if (ch >= 6 && s.maint.condition == null) {
+    s.maint.condition = 72;
+    discover(s, 'techo', 'Tu hotel ya tiene meses de uso y está en 72 de 100. Las cosas se desgastan aunque no las veas.');
+  }
   if (ch >= 7 && !s.comp.open) {
     s.comp.open = true;
     discover(s, 'diferencia', `GlobalStay abrió a dos cuadras: cobra ${money(Math.round(refEff(s, roomsOf(s)[0]) * 0.8 / 50) * 50)} por un cuarto estándar y todos conocen su marca.`);
@@ -292,5 +359,9 @@ export function startChapter(s, ch) {
   if (ch >= 8 && !s.flags.rodrigo) {
     s.flags.rodrigo = true;
     discover(s, 'mismo_barco', 'Don Rodrigo entró al Consejo como inversionista. Ahora también le rindes cuentas a él.');
+  }
+  if (ch >= 9 && !s.flags.yearTwo) {
+    s.flags.yearTwo = true;
+    discover(s, 'metas', `Empieza el Año 2 y el Consejo te puso una meta con número y fecha: ${mandateFor(13).text(s)}`);
   }
 }
