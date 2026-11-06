@@ -141,6 +141,7 @@ function morning(s, panel, scene) {
     const body = tab === 'hoy'
       ? [(s.notices || []).map((n) => h('div', { class: 'alert good' }, n)),
         s.eventResult ? h('div', { class: 'alert info' }, '📣 ', s.eventResult) : null,
+        adviceCard(s),
         checklist(s, p),
         tip(s, p),
         forecastCard(s),
@@ -148,7 +149,7 @@ function morning(s, panel, scene) {
         staffCard(s, p, draw),
         projectionCard(s, p),
         progressCard(s)]
-      : [s.eventResult ? h('div', { class: 'alert info' }, '📣 ', s.eventResult) : null, areaPanel(s, tab, draw, save)];
+      : [s.eventResult ? h('div', { class: 'alert info' }, '📣 ', s.eventResult) : null, adviceCard(s), areaPanel(s, tab, draw, save)];
     put(panel,
       header(s),
       areas.length > 1 ? h('div', { class: 'area-tabs', role: 'tablist' }, areas.map((a) => h('button', {
@@ -162,6 +163,17 @@ function morning(s, panel, scene) {
     );
   };
   draw();
+}
+
+// After each card: what a great director would have done, so every choice builds judgment.
+function adviceCard(s) {
+  const a = s.eventAdvice;
+  if (!a) return null;
+  let head;
+  if (a.single || a.best == null) head = h('b', null, '💡 Consejo de directora: ');
+  else if (a.best === a.chosen) head = h('b', null, '✅ ¡Gran decisión! ');
+  else head = [h('b', null, '💡 La mejor opción era: '), h('em', null, `“${a.bestLabel}”. `)];
+  return h('div', { class: `advice ${a.best != null && !a.single ? (a.best === a.chosen ? 'right' : 'other') : ''}` }, head, a.why);
 }
 
 function header(s) {

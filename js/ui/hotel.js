@@ -232,7 +232,7 @@ function business(s, { bx, bw, by, ly, groundY, night }) {
 
 // Luciana herself, standing in her lobby.
 function directora(x, y) {
-  return `<g class="directora" transform="translate(${x} ${y})">
+  return `<g transform="translate(${x} ${y})"><g class="directora">
     <path d="M-13 -14 q-4 14 0 26 h26 q4 -12 0 -26 q-2 -16 -13 -16 q-11 0 -13 16z" fill="#6B4026"/>
     <rect x="-10" y="-2" width="20" height="24" rx="6" fill="#6E1F33"/>
     <rect x="-3" y="-2" width="6" height="16" fill="#fff"/>
@@ -242,7 +242,7 @@ function directora(x, y) {
     <circle cx="-3.5" cy="-14" r="1.4" fill="#3B2416"/><circle cx="3.5" cy="-14" r="1.4" fill="#3B2416"/>
     <path d="M-3 -9 q3 3 6 0" stroke="#B5534A" stroke-width="1.4" fill="none" stroke-linecap="round"/>
     <rect x="6" y="2" width="10" height="13" rx="2" fill="#FFC24B" transform="rotate(10 11 8)"/>
-  </g>`;
+  </g></g>`;
 }
 
 function tower(bx, by, bw, groundY, night) {

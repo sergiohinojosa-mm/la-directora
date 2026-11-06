@@ -8,6 +8,7 @@ import { checkBadges } from '../data/badges.js';
 import { CHALLENGES, CHALLENGE_BY_ID } from '../data/challenges.js';
 import { hire as hireOne, fire as fireOne } from './sim.js';
 import { chapterFor } from '../data/chapters.js';
+import { ADVICE } from '../data/advice.js';
 import {
   ensure, quitChance, STAFF_NAMES, breakdownChance, potRev, trainCost, canTrain, restaurantInvestment,
   uniqueCost, finishProject, managerCost,
@@ -52,6 +53,7 @@ export function startMorning(s) {
   s.phase = 'morning';
   s.event = null;
   s.eventResult = null;
+  s.eventAdvice = null;
   s.notices = [];
   if (s.flags.restorePrices) {
     s.prices = { ...s.prices, ...s.flags.restorePrices };
@@ -101,7 +103,15 @@ export const eventOptions = (s, ev) => ev.options.map((o, i) => ({ ...o, i })).f
 export function resolveEvent(s, optionIndex) {
   const ev = EVENT_BY_ID[s.event.id];
   const opt = ev.options[optionIndex];
+  // The advice is judged on the situation she decided in, before the choice changes it.
+  const adv = ADVICE[ev.id];
+  const best = adv ? (typeof adv.best === 'function' ? adv.best(s) : adv.best) : null;
   s.eventResult = opt.apply(s) || '';
+  s.eventAdvice = adv ? {
+    why: adv.why, chosen: optionIndex, best,
+    bestLabel: best != null && ev.options[best] ? txt(ev.options[best].label, s) : null,
+    single: ev.options.length === 1,
+  } : null;
   s.event.chosen = optionIndex;
   if (ev.negative) s.flags.badEventDay = s.day;
   if (ev.id.startsWith('falla')) s.maint.breakdowns = [...(s.maint.breakdowns || []), s.day];
