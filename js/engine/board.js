@@ -4,10 +4,11 @@
 import { clamp, money, pct, DAYS, DAYS_PER_MONTH } from '../util.js';
 import { loc } from './sim.js';
 import { discover, applyLesson } from './lessons.js';
+import { LESSONS } from '../data/lessons.js';
 
 const OCC_TARGET = { playa: 0.62, centro: 0.6, carretera: 0.5 };
 // Monthly profit that earns the third star.
-export const PROFIT_GOAL = { playa: 150_000, centro: 60_000, carretera: 25_000 };
+export const PROFIT_GOAL = { playa: 150_000, centro: 70_000, carretera: 40_000 };
 
 export const MANDATES = [
   { id: 'llenar', title: 'Llenar el hotel',
@@ -75,7 +76,7 @@ export function questions(s, m) {
     equipo: 'Cuidar al equipo y la calidad para subir las reseñas',
   };
 
-  return [
+  const qs = [
     { by: 'alma', text: 'Directora, ¿cuál fue el gasto más grande del hotel este mes?',
       options: shuffle(Object.keys(costNames), month * 7).map((k) => ({ label: costNames[k], correct: k === biggest })),
       explain: `El gasto más grande fue "${costNames[biggest]}": ${money(m.costs[biggest])}.` },
@@ -88,6 +89,30 @@ export function questions(s, m) {
         : fix === 'equipo' ? `Tus reseñas (${m.reputation.toFixed(1)}★) y el ánimo (${Math.round(m.morale)}) frenan la demanda.`
         : 'Tus cuartos se llenan distinto cada día. El precio es tu herramienta para aprovecharlo.' },
   ];
+  const recall = recallQuestion(s, month);
+  if (recall) qs.push(recall);
+  return qs;
+}
+
+// Retrieval practice: complete one of the sayings she has already discovered.
+const WORD = /[A-Za-zÁÉÍÓÚÑáéíóúñü']{5,}/g;
+function recallQuestion(s, month) {
+  const known = LESSONS.filter((l) => (s.lessons[l.id]?.level ?? 0) > 0);
+  if (known.length < 2) return null;
+  const l = known[(month * 7) % known.length];
+  const words = l.phrase.match(WORD) || [];
+  if (!words.length) return null;
+  const answer = words.reduce((a, b) => (b.length > a.length ? b : a));
+  const pool = LESSONS.filter((x) => x.id !== l.id).flatMap((x) => x.phrase.match(WORD) || []).filter((w) => w.toLowerCase() !== answer.toLowerCase());
+  const distractors = [...new Set(pool)].sort((a, b) => Math.abs(a.length - answer.length) - Math.abs(b.length - answer.length) || a.localeCompare(b));
+  const picks = [distractors[month % Math.min(6, distractors.length)], distractors[(month + 3) % Math.min(6, distractors.length)]].filter((w, i, arr) => w && arr.indexOf(w) === i);
+  return {
+    by: l.by,
+    text: `Completa la frase que te enseñé: “${l.phrase.replace(answer, '_____')}”`,
+    options: shuffle([answer, ...picks], month * 11).map((w) => ({ label: w, correct: w === answer })),
+    explain: `“${l.phrase}”. ${l.tip}`,
+    recall: l.id,
+  };
 }
 
 export function starsFor(s, m) {
@@ -111,25 +136,25 @@ export function resolveMeeting(s, m, picked, answers) {
   if (hidden.some((k) => k.id === 'profit')) {
     delta -= 6;
     notes.push({ by: 'alma', text: 'Noté que no presentaste la ganancia. La encontré en el reporte. Prefiero que me lo digas tú.' });
-    discover(s, 'malas_noticias');
+    discover(s, 'malas_noticias', 'En la junta no presentaste la ganancia del mes, y el Consejo la encontró en el reporte.');
   } else if (shown.length) {
     delta += 3;
     notes.push({ by: 'papa', text: 'Gracias por poner sobre la mesa lo que no salió bien. Así podemos ayudarte.' });
-    applyLesson(s, 'malas_noticias');
+    applyLesson(s, 'malas_noticias', 'Presentaste al Consejo un número que no salió bien.');
   }
   let correct = 0;
   qs.forEach((q, i) => {
     if (q.options[answers[i]]?.correct) correct++;
   });
   delta += correct * 3 - (qs.length - correct) * 2;
-  if (correct === qs.length) applyLesson(s, 'numeros_historia');
+  const numbers = qs.filter((q) => !q.recall);
+  if (numbers.every((q) => q.options[answers[qs.indexOf(q)]]?.correct)) applyLesson(s, 'numeros_historia', 'Respondiste bien las preguntas del Consejo leyendo tus números.');
 
   const before = s.confidence;
   s.confidence = clamp(s.confidence + delta, 0, 100);
   if (m.month === 1) s.stars[1] = stars;
   s.monthStars = s.monthStars || {};
   s.monthStars[`${s.year}-${m.month}`] = stars;
-  if (stars >= 2) { if (!discover(s, 'celebra')) applyLesson(s, 'celebra'); }
 
   let verdict;
   if (s.confidence <= 0) verdict = 'closed';

@@ -66,7 +66,8 @@ function award(s, on, args) {
     if (b.on !== on || s.badges.includes(b.id)) continue;
     if (b.check(s, ...args)) {
       s.badges.push(b.id);
-      s.inbox.push({ badge: b.id, kind: 'badge' });
+      // Lesson badges wait with the lesson messages so the lesson shows before its reward.
+      s.inbox.push({ badge: b.id, kind: 'badge', afterLesson: on === 'lesson' });
     }
   }
 }

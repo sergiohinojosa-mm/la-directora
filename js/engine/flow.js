@@ -38,7 +38,7 @@ export function resolveEvent(s, optionIndex) {
   s.event.chosen = optionIndex;
   if (ev.negative) s.flags.badEventDay = s.day;
   if (ev.lesson) {
-    if (!discover(s, ev.lesson) && optionIndex === 0) applyLesson(s, ev.lesson);
+    if (!discover(s, ev.lesson, ev.lessonCtx) && optionIndex === 0) applyLesson(s, ev.lesson, 'Probaste la idea de alguien de tu equipo.');
   }
   checkBadges(s, 'event');
 }

@@ -41,7 +41,7 @@ function lessons(s) {
         const lv = st?.level ?? 0;
         return h('button', { class: `lcard l${lv}`, onclick: () => lv && openLesson(s, l) , disabled: !lv, 'aria-label': lv ? l.phrase : 'Lección por descubrir' },
           h('div', { class: 'row between' }, avatar(l.by, 'sm'), st && !st.seen ? h('span', { class: 'level-pill', style: { background: '#FFE8E4', color: '#9E2E1F' } }, 'Nueva') : h('span', { class: 'level-pill' }, LEVELS[lv])),
-          h('div', { class: 'q' }, lv ? `“${l.phrase}”` : '¿ ? ?'),
+          h('div', { class: 'q' }, lv ? `${l.icon} “${l.phrase}”` : '🔒 ¿ ? ?'),
           h('small', { class: lv ? 'muted' : 'muted-dark' }, lv ? `${BOARD[l.by].name} · ${'●'.repeat(lv)}${'○'.repeat(3 - lv)}` : 'Sigue jugando para descubrirla'));
       })))));
 }
@@ -53,14 +53,18 @@ function openLesson(s, l) {
   modal((close) => {
     const player = audioPlayer(l.id);
     return h('div', { class: 'msg-card' },
-      avatar(l.by),
+      h('div', { class: 'lesson-head' }, avatar(l.by), h('span', { class: 'lesson-icon', 'aria-hidden': 'true' }, l.icon)),
       h('div', { class: 'from' }, BOARD[l.by].name),
       h('div', { class: 'quote' }, `“${l.phrase}”`),
+      l.es ? h('div', { class: 'es' }, l.es) : null,
       player,
       h('p', { class: 'meaning' }, l.meaning),
+      h('div', { class: 'tip-box' }, h('b', null, '💡 La próxima vez: '), l.tip),
+      st.ctx ? h('div', { class: 'why' }, h('b', null, `Cómo la aprendiste (día ${st.day}): `), st.ctx) : null,
+      st.lastCtx ? h('div', { class: 'why good' }, h('b', null, 'La última vez que la aplicaste: '), st.lastCtx) : null,
       h('span', { class: 'level-pill' }, `${LEVELS[st.level]} · aplicada ${st.applied} ${st.applied === 1 ? 'vez' : 'veces'}`),
       st.level < 3 ? h('p', { class: 'muted', style: { fontSize: '14px' } }, st.level === 1 ? 'Úsala en una decisión real para que suba a Aplicada.' : `Aplícala ${3 - st.applied} ${3 - st.applied === 1 ? 'vez' : 'veces'} más para dominarla.`) : null,
-      h('button', { class: 'btn btn-primary btn-block', onclick: () => { player?.stop(); close(); renderBookAgain(); } }, 'Cerrar'));
+      h('button', { class: 'btn btn-primary btn-block', onclick: () => { player?.stop(); close(); } }, 'Cerrar'));
   }, { dismissable: true }).then(() => renderBookAgain());
 }
 

@@ -73,13 +73,12 @@ p { margin: 0; }
 .icon-btn .dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--coral); border: 2px solid var(--night); }
 
 /* ---------- Title screen ---------- */
-.title-screen { min-height: 100vh; display: grid; grid-template-rows: 1fr auto; position: relative; overflow: hidden; }
-.title-scene { position: absolute; inset: 0; opacity: .9; }
-.title-scene svg { width: 100%; height: 100%; }
+.title-screen { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; position: relative; overflow: hidden; }
+.title-scene { width: min(720px, 100%); margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 14px 0; }
+.title-scene svg { width: 100%; height: auto; max-height: 52vh; display: block; border-radius: 28px; box-shadow: 0 30px 60px -30px rgba(255, 140, 105, .55); }
 .title-content {
-  position: relative; z-index: 1; align-self: end; padding: 24px max(20px, env(safe-area-inset-left)) 40px;
-  display: grid; gap: 18px; justify-items: center; text-align: center;
-  background: linear-gradient(to top, var(--night) 55%, rgba(20,27,51,0));
+  position: relative; z-index: 1; align-self: start; padding: 22px max(20px, env(safe-area-inset-left)) 40px;
+  display: grid; gap: 16px; justify-items: center; text-align: center;
 }
 .logo { font-family: var(--f-display); font-weight: 800; font-size: clamp(54px, 11vw, 104px); letter-spacing: -.03em; line-height: .9; }
 .logo span { display: block; font-size: .32em; letter-spacing: .28em; font-weight: 600; color: var(--sun); margin-bottom: 8px; }
@@ -250,6 +249,12 @@ details.more summary::-webkit-details-marker { display: none; }
 .player button { width: 44px; height: 44px; border-radius: 50%; background: var(--coral); color: #fff; font-size: 16px; flex: none; }
 .player .track { flex: 1; height: 8px; border-radius: 99px; background: #DCE1EE; overflow: hidden; }
 .player .track i { display: block; height: 100%; width: 0; background: var(--coral); }
+.lesson-head { position: relative; }
+.lesson-icon { position: absolute; right: -14px; bottom: -6px; width: 40px; height: 40px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 22px; box-shadow: 0 4px 10px -4px rgba(0,0,0,.35); }
+.why { background: #FFF6E5; color: #6B4A00; border-radius: 14px; padding: 10px 12px; font-size: 14.5px; text-align: left; width: 100%; }
+.why.good { background: #E9F8F1; color: #11603F; }
+.es { margin-top: -8px; color: var(--ink-2); font-style: italic; font-size: 15px; }
+.tip-box { background: #EEF9FA; color: #0F5C60; border-radius: 14px; padding: 10px 12px; font-size: 14.5px; text-align: left; width: 100%; }
 .level-pill { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 99px; background: #F0EBFF; color: #5B3FC4; }
 .badge-big { font-size: 64px; line-height: 1; filter: drop-shadow(0 8px 10px rgba(0,0,0,.2)); animation: wobble 1.2s ease; }
 @keyframes wobble { 30% { transform: rotate(-10deg) scale(1.15); } 60% { transform: rotate(8deg); } }
@@ -320,7 +325,8 @@ textarea.text-input { min-height: 96px; padding: 12px 16px; font-size: 16px; fon
 .ranks span.now { background: var(--coral); color: #fff; }
 
 /* Board meeting */
-.board-table { display: flex; justify-content: center; gap: clamp(10px, 4vw, 40px); flex-wrap: wrap; }
+.board-table { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-width: 520px; margin: 0 auto; width: 100%; }
+@media (max-width: 520px) { .board-table .avatar { width: 58px; height: 58px; font-size: 24px; } .seat small { font-size: 10.5px; } }
 .seat { text-align: center; display: grid; justify-items: center; gap: 6px; }
 .seat b { font-size: 14px; }
 .seat small { font-size: 12px; color: #A9B3D6; }

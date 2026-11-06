@@ -26,7 +26,7 @@ export const LOCATIONS = [
       { id: 'mar', name: 'Vista al mar', count: 5, ref: 4300 },
       { id: 'suite', name: 'Suite', count: 1, ref: 7800 },
     ],
-    startHousekeepers: 3,
+    startHousekeepers: 1,
     expects: { attr: 'spa', note: 'Los clientes de lujo esperan un spa.' },
     risk: 'Temporada baja muy vacía; un mes malo duele mucho.',
   },
@@ -46,7 +46,7 @@ export const LOCATIONS = [
       { id: 'std', name: 'Estándar', count: 10, ref: 1600 },
       { id: 'fam', name: 'Familiar', count: 4, ref: 2300 },
     ],
-    startHousekeepers: 2,
+    startHousekeepers: 1,
     expects: { attr: 'desayuno', note: 'Las familias y los viajeros de trabajo esperan desayuno.' },
     risk: 'Más competencia directa: Marea Inn está enfrente.',
   },
@@ -63,7 +63,7 @@ export const LOCATIONS = [
     elasticity: 3.6,
     mix: { lujo: 0, familias: 0.15, trabajo: 0.35, paso: 0.5 },
     rooms: [{ id: 'std', name: 'Estándar', count: 12, ref: 850 }],
-    startHousekeepers: 2,
+    startHousekeepers: 1,
     expects: null,
     risk: 'Poca demanda; difícil pasar de 50% de cuartos llenos.',
   },
@@ -100,7 +100,9 @@ export const ATTRIBUTES = [
 
 export const MAX_ATTRIBUTES = 2;
 export const HOUSEKEEPER_DAILY = 480;
-export const ROOMS_PER_HOUSEKEEPER = 6;
+// Real hotels: 12–16 rooms per housekeeper per 8-hour shift.
+export const ROOMS_PER_HOUSEKEEPER = 12;
+export const TRAINING_DAYS = 5;
 export const BOARD = {
   papa: { name: 'Papá', role: 'Presidente del Consejo', color: '#FFC24B', initial: 'P' },
   alma: { name: 'Abuela Alma', role: 'Consejera de Finanzas', color: '#2BB3C0', initial: 'A' },

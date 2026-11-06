@@ -46,7 +46,7 @@ export function startPrologue(onDone, carry = null) {
       h('button', { class: 'btn btn-primary btn-big btn-block', onclick: async () => {
         if (discover(app.s, 'location')) app.s.inbox = app.s.inbox.filter((m) => m.id !== 'location');
         await showPending();
-        if (app.s.lessons.location && !app.s.lessons.location.heard) { app.s.lessons.location.heard = true; await lessonNew('location'); }
+        if (app.s.lessons.location && !app.s.lessons.location.heard) { app.s.lessons.location.heard = true; await lessonNew('location', 'Estás por elegir dónde comprar tu hotel.'); }
         go(1);
       } }, 'Ver los hoteles en venta'),
     );
@@ -149,7 +149,7 @@ export function startPrologue(onDone, carry = null) {
       h('div', { class: 'row', style: { gap: '10px' } },
         h('button', { class: 'btn btn-ghost', onclick: () => go(2) }, 'Atrás'),
         h('button', { class: 'btn btn-primary btn-big', style: { flex: 1 }, disabled: pick.attributes.length === 0, onclick: async () => {
-          if (discover(app.s, 'conoce_cliente')) { app.s.inbox = app.s.inbox.filter((m) => m.id !== 'conoce_cliente'); await lessonNew('conoce_cliente'); }
+          if (discover(app.s, 'conoce_cliente')) { app.s.inbox = app.s.inbox.filter((m) => m.id !== 'conoce_cliente'); await lessonNew('conoce_cliente', 'Acabas de elegir qué hace especial a tu hotel.'); }
           go(4);
         } }, pick.attributes.length ? 'Listo' : 'Elige al menos una'),
       ),
@@ -192,7 +192,7 @@ export function startPrologue(onDone, carry = null) {
 async function showPending() {
   const pending = app.s.inbox.filter((m) => m.kind === 'new');
   app.s.inbox = [];
-  for (const m of pending) await lessonNew(m.id);
+  for (const m of pending) await lessonNew(m.id, m.ctx);
 }
 
 function fact(label, value) {

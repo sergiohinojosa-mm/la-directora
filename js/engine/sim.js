@@ -3,7 +3,7 @@
 import { clamp, rng, calendar, DAYS_PER_MONTH, DAYS } from '../util.js';
 import {
   LOCATIONS, LOAN_OPTIONS, ATTRIBUTES, monthlyPayment,
-  HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER,
+  HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER, TRAINING_DAYS,
 } from '../data/world.js';
 
 export const loc = (s) => LOCATIONS.find((l) => l.id === s.locationId);
@@ -101,7 +101,7 @@ export function demandMult(s, day) {
 export function forecast(s, day) {
   const L = loc(s);
   const dow = calendar(day).dow;
-  const base = L.baseOcc * season(s, day) * WEEKDAY[L.id][dow] * (0.62 + 0.11 * s.reputation)
+  const base = L.baseOcc * season(s, day) * WEEKDAY[L.id][dow] * (0.8 + 0.06 * s.reputation)
     * (1 + attrDemandBonus(s)) * demandMult(s, day);
   const byType = Object.fromEntries(L.rooms.map((r) => [r.id, r.count * base]));
   const total = Object.values(byType).reduce((a, b) => a + b, 0);
@@ -109,7 +109,8 @@ export function forecast(s, day) {
   return { day, byType, total, labels };
 }
 
-export const refEff = (s, room) => room.ref * (0.88 + 0.035 * s.reputation);
+// Cornell (2012): one more review point lets a hotel charge ~11% more at the same occupancy.
+export const refEff = (s, room) => room.ref * (0.626 + 0.11 * s.reputation);
 
 export function priceFactor(s, room, price) {
   const r = price / refEff(s, room);
@@ -120,7 +121,9 @@ export function cleaningCapacity(s, day = s.day) {
   const off = activeMods(s, day, 'hkOff').reduce((n, m) => n + m.n, 0);
   const mult = activeMods(s, day, 'cleanMult').reduce((m, x) => m * x.mult, 1);
   const eff = 0.75 + 0.35 * (s.morale / 100);
-  const people = Math.max(0, s.housekeepers - off);
+  // New hires clean at 60% while they learn.
+  const trainees = (s.hires || []).filter((d) => day - d < TRAINING_DAYS).length;
+  const people = Math.max(0, s.housekeepers - off - trainees * 0.4);
   return {
     nominal: people * ROOMS_PER_HOUSEKEEPER * mult,
     real: Math.floor(people * ROOMS_PER_HOUSEKEEPER * eff * mult * (s.overtime ? 1.4 : 1)),
@@ -344,6 +347,7 @@ export function summarize(list) {
 
 export function hire(s) {
   s.housekeepers += 1;
+  s.hires = [...(s.hires || []), s.day];
   s.hiredEver += 1;
 }
 

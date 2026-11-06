@@ -37,7 +37,7 @@ export function roomStates(s, result) {
   return out;
 }
 
-export function hotelSvg(s, { mode = 'morning', result = null, name } = {}) {
+export function hotelSvg(s, { mode = 'morning', result = null, name, compact = false } = {}) {
   const rooms = s ? roomStates(s, result) : demoRooms();
   const perFloor = 4;
   const floors = Math.ceil(rooms.length / perFloor);
@@ -69,15 +69,18 @@ export function hotelSvg(s, { mode = 'morning', result = null, name } = {}) {
     const delay = (i * 0.12).toFixed(2);
     roomsSvg += `<g class="room-g ${mode === 'day' ? 'hidden-guest' : ''}" data-i="${i}" data-state="${r.state}">
       <rect class="room" x="${x}" y="${y}" width="${roomW}" height="${roomH}" rx="9" fill="${mode === 'day' ? COLORS.ready : fill}" stroke="${r.state === 'free' ? '#DCE3EE' : 'none'}" stroke-width="2" style="transition-delay:${delay}s"/>
-      <rect x="${x + 8}" y="${y + roomH - 20}" width="34" height="12" rx="4" fill="#A0AEC8" opacity=".55"/>
+      ${furniture(x, y, r, i)}
       <text x="${x + 8}" y="${y + 17}" font-size="11" font-weight="800" fill="#18203B" opacity=".55" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
-      ${r.state === 'dirty' ? `<g class="dirt"><circle cx="${x + 62}" cy="${y + 42}" r="6" fill="#fff" opacity=".8"/><circle cx="${x + 74}" cy="${y + 34}" r="4" fill="#fff" opacity=".8"/><text x="${x + roomW / 2}" y="${y + 60}" font-size="10" font-weight="800" text-anchor="middle" fill="#B23A2A" font-family="Plus Jakarta Sans, sans-serif">SUCIO</text></g>` : ''}
-      ${r.state === 'occ' ? `<g class="guest" style="transition-delay:${delay}s"><circle cx="${x + 64}" cy="${y + 36}" r="10" fill="${guestColor}"/><rect x="${x + 53}" y="${y + 46}" width="22" height="16" rx="6" fill="${guestColor}"/>${night ? `<text class="zzz" x="${x + 78}" y="${y + 26}" font-size="12" font-weight="800" fill="#18203B">z</text>` : ''}</g>` : ''}
+      ${r.state === 'dirty' ? `<g class="dirt"><path d="M${x + 24} ${y + 44} q8 -6 16 0 t16 2 l-2 14 h-30z" fill="#E7DCCB"/><circle cx="${x + 70}" cy="${y + 30}" r="5" fill="#fff" opacity=".9"/><circle cx="${x + 80}" cy="${y + 22}" r="3.5" fill="#fff" opacity=".9"/><circle cx="${x + 62}" cy="${y + 22}" r="2.5" fill="#fff" opacity=".9"/><rect x="${x + roomW - 44}" y="${y + 6}" width="38" height="14" rx="7" fill="#E2513E"/><text x="${x + roomW - 25}" y="${y + 16}" font-size="8.5" font-weight="800" text-anchor="middle" fill="#fff" font-family="Plus Jakarta Sans, sans-serif">SUCIO</text></g>` : ''}
+      ${r.state === 'occ' ? (night
+        ? `<g class="guest"><circle cx="${x + 20}" cy="${y + 43}" r="6.5" fill="${guestColor}"/><rect x="${x + 25}" y="${y + 44}" width="33" height="14" rx="4" fill="${BLANKET[r.type] || '#A78BFA'}"/><text class="zzz" x="${x + 30}" y="${y + 34}" font-size="12" font-weight="800" fill="#18203B">z</text></g>`
+        : `<g class="guest" style="transition-delay:${delay}s"><circle cx="${x + 80}" cy="${y + 34}" r="8" fill="${guestColor}"/><rect x="${x + 71}" y="${y + 42}" width="18" height="18" rx="6" fill="${guestColor}"/></g>`) : ''}
     </g>`;
   });
 
   const ly = by + bh - lobbyH;
-  const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista del hotel">
+  const vb = compact ? `${bx - 50} ${by - 66} ${bw + 50 + 180} ${H - (by - 66)}` : `0 0 ${W} ${H}`;
+  const svg = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista del hotel">
     <defs>
       <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${skyTop}"/><stop offset="1" stop-color="${skyBottom}"/></linearGradient>
       <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2EC4C9"/><stop offset="1" stop-color="#1B8FA0"/></linearGradient>
@@ -98,6 +101,7 @@ export function hotelSvg(s, { mode = 'morning', result = null, name } = {}) {
       <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="14" fill="url(#wall)"/>
       <rect x="${bx - 14}" y="${by - 30}" width="${bw + 28}" height="36" rx="10" fill="#FF6B57"/>
     </g>
+    ${s ? `<g transform="translate(${bx + bw - 70} ${by - 50})"><rect width="76" height="24" rx="12" fill="#18203B"/><text x="38" y="16.5" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="12" fill="#FFC24B">★ ${s.reputation.toFixed(1)}</text></g>` : ''}
     <text x="${bx + bw / 2}" y="${by - 6}" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="20" fill="#fff" letter-spacing="3">${escapeXml(hotelName)}</text>
     ${roomsSvg}
     <rect x="${bx + gap}" y="${ly}" width="${bw - 2 * gap}" height="${lobbyH - gap}" rx="9" fill="#FFE3B8"/>
@@ -141,7 +145,7 @@ export function animateDay(svg, result, s) {
           const ns = 'http://www.w3.org/2000/svg';
           const gg = document.createElementNS(ns, 'g');
           gg.setAttribute('class', 'guest');
-          gg.innerHTML = `<circle cx="${x + 64}" cy="${y + 36}" r="10" fill="${color}"/><rect x="${x + 53}" y="${y + 46}" width="22" height="16" rx="6" fill="${color}"/>`;
+          gg.innerHTML = `<circle cx="${x + 80}" cy="${y + 34}" r="8" fill="${color}"/><rect x="${x + 71}" y="${y + 42}" width="18" height="18" rx="6" fill="${color}"/>`;
           g.append(gg);
         }
         if (t.state === 'dirty') {
@@ -152,6 +156,24 @@ export function animateDay(svg, result, s) {
     });
     setTimeout(resolve, 600 + groups.length * 140);
   });
+}
+
+const BLANKET = { std: '#A78BFA', mar: '#2EC4C9', suite: '#FFC24B', fam: '#FF8FB1' };
+
+// Bed, pillow, nightstand and lamp; the blanket color tells the room type.
+function furniture(x, y, r, i) {
+  const blanket = BLANKET[r.type] || '#A78BFA';
+  const made = r.state !== 'dirty';
+  return `<g class="furn">
+    <rect x="${x + 8}" y="${y + 34}" width="6" height="26" rx="2" fill="#B08463"/>
+    <rect x="${x + 12}" y="${y + 46}" width="48" height="13" rx="4" fill="#fff" stroke="#E3E7F2"/>
+    <rect x="${x + 14}" y="${y + 40}" width="12" height="7" rx="3" fill="#fff" stroke="#E3E7F2"/>
+    ${made ? `<rect x="${x + 28}" y="${y + 45}" width="32" height="14" rx="4" fill="${blanket}" opacity=".9"/>` : ''}
+    <rect x="${x + 64}" y="${y + 50}" width="12" height="10" rx="2" fill="#B08463"/>
+    <path d="M${x + 66} ${y + 44} h8 l-2 -6 h-4z" fill="#FFC24B"/>
+    <rect x="${x + 69.5}" y="${y + 44}" width="1" height="6" fill="#8A6A50"/>
+    <rect x="${x + 40}" y="${y + 8}" width="${i % 2 ? 22 : 16}" height="14" rx="2" fill="#BFE7EE" stroke="#fff" stroke-width="2"/>
+  </g>`;
 }
 
 function starsSvg(W) {

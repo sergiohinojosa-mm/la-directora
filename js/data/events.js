@@ -112,7 +112,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'idea_kevin', kind: 'equipo', minDay: 8, lesson: 'escucha_equipo',
+    id: 'idea_kevin', kind: 'equipo', minDay: 8, lesson: 'escucha_equipo', lessonCtx: 'Kevin, de recepción, te propuso una idea para los huéspedes.',
     title: 'Kevin de recepción tiene una idea',
     text: 'Propone noches de cine al aire libre para los huéspedes. Costaría $3,000 y una tarde de su tiempo.',
     options: [

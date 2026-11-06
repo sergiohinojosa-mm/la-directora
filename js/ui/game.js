@@ -4,7 +4,7 @@ import { h, money, pct, calendar, dateLabel, DAYS_SHORT, DAYS, clamp } from '../
 import { loc, preview, forecast, refEff, cleaningCapacity, totalRooms, weekCost } from '../engine/sim.js';
 import { resolveEvent, playDay, finishEvening, advanceAfterDay, nextDay, hire, fire } from '../engine/flow.js';
 import { EVENT_BY_ID } from '../data/events.js';
-import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER } from '../data/world.js';
+import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER, TRAINING_DAYS } from '../data/world.js';
 import { rank } from '../data/badges.js';
 import { mandateFor, PROFIT_GOAL } from '../engine/board.js';
 import { saveGame } from '../store.js';
@@ -21,6 +21,8 @@ const clean = (kids) => kids.flat().filter((k) => k != null && k !== false);
 const put = (el, ...kids) => el.replaceChildren(...clean(kids));
 const add = (el, ...kids) => el.append(...clean(kids));
 
+const isPhone = () => window.innerWidth < 700;
+
 const KIND = {
   noticia: ['Noticia', '#2EC4C9'], equipo: ['Equipo', '#E2513E'], operacion: ['Operación', '#D98E04'],
   oportunidad: ['Oportunidad', '#1FA971'], crisis: ['Crisis', '#E2513E'], mercado: ['Mercado', '#2EC4C9'],
@@ -30,7 +32,7 @@ export function renderGame() {
   const s = app.s;
   if (s.phase === 'board') return nav.board();
   if (s.phase === 'closed') return closedScreen();
-  const scene = h('div', { class: 'scene' }, hotelSvg(s, sceneOpts(s)));
+  const scene = h('div', { class: 'scene' }, hotelSvg(s, { ...sceneOpts(s), compact: isPhone() }));
   const panel = h('div', { class: 'panel' });
   mount(h('div', { class: 'shell' },
     topbar(s),
@@ -218,14 +220,14 @@ function staffCard(s, p, redraw) {
     h('span', { class: 'kicker' }, 'Equipo de limpieza'),
     h('div', { class: 'row between' },
       h('div', { class: 'staff' }, Array.from({ length: s.housekeepers }, () => h('div', { class: 'person' }, '🧹'))),
-      h('small', { class: 'muted' }, `${money(HOUSEKEEPER_DAILY)} por persona al día`)),
+      h('small', { class: 'muted' }, `Cada una limpia ~${ROOMS_PER_HOUSEKEEPER} cuartos por turno · ${money(HOUSEKEEPER_DAILY)} al día`)),
     h('div', { class: `alert ${short ? 'bad' : 'good'}` },
       short ? '⚠️ ' : '✅ ', `Cuartos por limpiar: ${p.dirtyStart}. Tu equipo puede limpiar: ${cap.real}.`),
     h('label', { class: 'toggle' },
       h('input', { type: 'checkbox', id: 'overtime', checked: s.overtime, onchange: (e) => { s.overtime = e.target.checked; save(); redraw(); } }),
       h('span', null, h('b', null, 'Horas extra hoy'), h('br'), h('small', { class: 'muted' }, 'Limpian 40% más. Cuesta 50% más y cansa al equipo.'))),
     h('div', { class: 'row', style: { gap: '8px' } },
-      h('button', { class: 'btn btn-secondary', style: { flex: 1 }, onclick: () => { hire(s); sfx('coin'); save(); toast(`Contrataste a una recamarista. Limpia ${ROOMS_PER_HOUSEKEEPER} cuartos al día.`); renderGame(); } }, '＋ Contratar'),
+      h('button', { class: 'btn btn-secondary', style: { flex: 1 }, onclick: () => { hire(s); sfx('coin'); save(); toast(`Contrataste a una recamarista. Los primeros ${TRAINING_DAYS} días aprende y limpia menos.`, 3500); renderGame(); } }, '＋ Contratar'),
       h('button', { class: 'btn btn-secondary', style: { flex: 1 }, disabled: s.housekeepers <= 1, onclick: async () => {
         const ok = await modal((close) => h('div', { class: 'msg-card' },
           h('div', { class: 'quote', style: { fontSize: '24px' } }, '¿Despedir a una persona?'),
@@ -258,7 +260,7 @@ async function openDay(s, panel, scene) {
   put(panel, h('div', { class: 'card stack', style: { textAlign: 'center', justifyItems: 'center' } },
     h('h3', null, 'El día está en marcha…'),
     h('p', { class: 'muted' }, 'Tu equipo limpia y los huéspedes llegan.')));
-  const svg = hotelSvg(s, { mode: 'day', result: r });
+  const svg = hotelSvg(s, { mode: 'day', result: r, compact: isPhone() });
   scene.replaceChildren(svg);
   scene.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   await animateDay(svg, r, s);

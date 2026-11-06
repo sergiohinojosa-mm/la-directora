@@ -24,8 +24,7 @@ setBoardNav(nav);
 function titleScreen() {
   const saved = app.s || loadGame();
   if (saved) app.s = saved;
-  const scene = h('div', { class: 'title-scene' }, hotelSvg(saved, { mode: 'title', name: saved?.hotelName || 'La Directora' }));
-  scene.firstChild.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  const scene = h('div', { class: 'title-scene' }, hotelSvg(saved, { mode: 'title', name: saved?.hotelName || 'La Directora', compact: true }));
   mount(h('div', { class: 'title-screen' },
     scene,
     h('div', { class: 'title-content' },
@@ -58,7 +57,7 @@ function newYear() {
   const old = app.s;
   const carry = { year: (old.year || 1) + 1, lessons: old.lessons, diary: old.diary, badges: old.badges || [], stars: old.stars || {}, monthStars: old.monthStars || {} };
   app.s = { lessons: old.lessons, inbox: [], day: 0 };
-  discover(app.s, 'practica');
+  discover(app.s, 'practica', `Tu hotel anterior cerró. Empiezas el año ${carry.year} con todo lo que aprendiste.`);
   startPrologue(onPrologueDone, carry);
 }
 
