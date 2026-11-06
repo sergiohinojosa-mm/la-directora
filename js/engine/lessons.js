@@ -17,7 +17,9 @@ export function discover(s, id, ctx = '') {
 
 export function applyLesson(s, id, ctx = '') {
   const l = s.lessons[id];
-  if (!l || l.level === 0 || l.lastApplied === s.day) return;
+  // Spaced practice: an application counts at most once every 5 days, so mastery takes weeks.
+  if (!l || l.level === 0 || (l.lastApplied != null && s.day - l.lastApplied < 5 && l.lastYear === s.year)) return;
+  l.lastYear = s.year;
   l.applied += 1;
   l.lastApplied = s.day;
   if (ctx) l.lastCtx = ctx;
@@ -77,7 +79,9 @@ export function afterDay(s, r) {
   }
 
   if (s.flags.badEventDay === r.day) {
-    if (!discover(s, 'duena', 'Hoy pasó algo que no dependía de ti, y tuviste que decidir qué hacer.') && r.profit > 0) {
+    const recent = s.history.slice(-8, -1);
+    const avg = recent.reduce((a, x) => a + x.profit, 0) / (recent.length || 1);
+    if (!discover(s, 'duena', 'Hoy pasó algo que no dependía de ti, y tuviste que decidir qué hacer.') && r.profit > 0 && r.profit >= avg) {
       applyLesson(s, 'duena', `Después de un problema, cerraste el día con ${money(r.profit)} de ganancia.`);
     }
   }

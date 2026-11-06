@@ -21,6 +21,17 @@ export async function drainInbox(s, save, { onlyRewards = false } = {}) {
     if (idx < 0) break;
     const [item] = s.inbox.splice(idx, 1);
     save?.();
+    // Several rewards at once become one "Logros" card instead of a chain of pop-ups.
+    const isReward = (m) => m.kind === 'badge' || m.kind === 'challenge' || m.kind === 'rank';
+    if (isReward(item)) {
+      const group = [item];
+      for (let i = 0; i < s.inbox.length;) {
+        const m = s.inbox[i];
+        if (isReward(m) && (!onlyRewards || !isLesson(m))) group.push(...s.inbox.splice(i, 1));
+        else i++;
+      }
+      if (group.length > 1) { save?.(); await rewards(group); continue; }
+    }
     if (item.kind === 'new') await lessonNew(item.id, item.ctx);
     else if (item.kind === 'applied' || item.kind === 'mastered') await lessonLevel(item.id, item.kind, item.ctx);
     else if (item.kind === 'badge') await badge(item.badge);
@@ -78,6 +89,20 @@ function badge(id) {
     h('p', { class: 'meaning' }, b.desc),
     h('button', { class: 'btn btn-primary btn-block', onclick: () => close() }, '¡Genial!'),
   ));
+}
+
+function rewards(group) {
+  sfx('fanfare');
+  confetti(1.1);
+  const row = (icon, title, text) => h('div', { class: 'reward-row' }, h('span', { class: 'ric' }, icon), h('div', null, h('b', null, title), h('small', null, text)));
+  return modal((close) => h('div', { class: 'msg-card' },
+    h('div', { class: 'from' }, '¡Nuevos logros!'),
+    h('div', { class: 'reward-list' }, group.map((m) => {
+      if (m.kind === 'badge') { const b = BADGE_BY_ID[m.badge]; return row(b.icon, `Insignia: ${b.name}`, b.desc); }
+      if (m.kind === 'challenge') { const c = CHALLENGE_BY_ID[m.id]; return row(c.icon, `Reto cumplido: ${c.title}`, `Premio: ${money(c.reward)} para el hotel`); }
+      return row('🎖️', `Nuevo rango: ${m.rank}`, `Tu hotel se mejoró: ${UNLOCKS[RANKS.findIndex((r) => r.name === m.rank)] || ''}`);
+    })),
+    h('button', { class: 'btn btn-primary btn-block', onclick: () => close() }, '¡Genial!')));
 }
 
 function challengeWon(id) {
