@@ -1,5 +1,6 @@
 // Familia en línea: every device that knows the family code shares players, saved games and the
-// Tablero de Directoras through Supabase (cloud-config.js). The game always plays from the local
+// Tablero de Directoras through a small script in the family's Google Drive (cloud-config.js and
+// ../familia_google_drive.gs). The game always plays from the local
 // copy; the cloud catches up in the background and nothing waits for it, so it also works offline.
 
 import { CLOUD } from './cloud-config.js';
@@ -9,7 +10,7 @@ import {
 } from './store.js';
 import { summary } from './engine/ranking.js';
 
-export const cloudAvailable = () => !!(CLOUD.url && CLOUD.key);
+export const cloudAvailable = () => !!CLOUD.url;
 export const cloudOn = () => cloudAvailable() && !!familyCode();
 
 // ---- Family code: 20 characters with no look-alikes (0/o, 1/l/i), shown in groups of 5 ----
@@ -26,17 +27,18 @@ export function parseCode(text) {
 }
 export const joinLink = () => `${location.origin}${location.pathname}#familia=${formatCode(familyCode())}`;
 
-// ---- Supabase RPC ----
+// ---- Calls to the Google Drive script ----
+// text/plain keeps it a "simple" request (no CORS preflight, which Apps Script can't answer); the
+// script answers through a redirect that fetch follows on its own.
 async function rpc(fn, args) {
-  const headers = { 'Content-Type': 'application/json', apikey: CLOUD.key };
-  if (!CLOUD.key.startsWith('sb_')) headers.Authorization = `Bearer ${CLOUD.key}`;
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 15_000);
+  const timer = setTimeout(() => ctl.abort(), 25_000);
   try {
-    const res = await fetch(`${CLOUD.url.replace(/\/$/, '')}/rest/v1/rpc/${fn}`, { method: 'POST', headers, body: JSON.stringify(args), signal: ctl.signal });
+    const res = await fetch(CLOUD.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args }), signal: ctl.signal });
     if (!res.ok) throw new Error(`${fn}: ${res.status}`);
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
+    const out = await res.json();
+    if (!out?.ok) throw new Error(`${fn}: ${out?.error || 'sin respuesta'}`);
+    return out.data;
   } finally { clearTimeout(timer); }
 }
 

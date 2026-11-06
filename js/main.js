@@ -50,7 +50,7 @@ const atMost = (p, ms) => Promise.race([p.catch(() => null), new Promise((r) => 
 async function bringLatest(id) {
   if (!cloudOn()) return;
   waiting('Buscando tu partida más reciente…');
-  await atMost(pullSave(id, chooseVersion), 8000);
+  await atMost(pullSave(id, chooseVersion), 10000);
 }
 
 // Both this device and another one have new progress for the same player: she picks which continues.
@@ -71,7 +71,7 @@ onConflict(async (id) => {
 });
 
 async function start() {
-  if (cloudOn()) { waiting('Conectando con tu familia…'); await atMost(syncPlayers(), 5000); }
+  if (cloudOn()) { waiting('Conectando con tu familia…'); await atMost(syncPlayers(), 8000); }
   const list = profiles();
   if (!list.length) {
     // First time on this device: create the first player.
