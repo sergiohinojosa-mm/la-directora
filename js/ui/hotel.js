@@ -39,7 +39,8 @@ export function roomStates(s, result) {
 }
 
 export function hotelSvg(s, { mode = 'morning', result = null, name, compact = false } = {}) {
-  const rooms = s ? roomStates(s, result) : demoRooms();
+  // The title screen always shows a lively, lit-up hotel.
+  const rooms = mode === 'title' || !s ? demoRooms(s ? roomStates(s, null) : null) : roomStates(s, result);
   const perFloor = 4;
   const floors = Math.ceil(rooms.length / perFloor);
   const roomW = 96;
@@ -241,9 +242,10 @@ function starsSvg(W) {
   return out;
 }
 
-function demoRooms() {
-  const states = ['occ', 'occ', 'free', 'occ', 'occ', 'dirty', 'occ', 'free', 'occ', 'occ', 'occ', 'free'];
-  return states.map((state, i) => ({ type: i === 0 ? 'suite' : 'std', state }));
+function demoRooms(real) {
+  const states = ['occ', 'occ', 'free', 'occ', 'occ', 'occ', 'free', 'occ', 'occ', 'occ', 'occ', 'free', 'occ', 'occ', 'free', 'occ'];
+  if (real) return real.map((r, i) => ({ ...r, state: states[i % states.length] }));
+  return states.slice(0, 12).map((state, i) => ({ type: i === 0 ? 'suite' : 'std', state }));
 }
 
 function escapeXml(t) {

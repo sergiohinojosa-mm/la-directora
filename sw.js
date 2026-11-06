@@ -1,6 +1,6 @@
 // Permite jugar sin internet una vez que el juego se abrió: primero intenta la red (para recibir
 // siempre la versión nueva) y, si no hay conexión, usa la copia guardada.
-const CACHE = 'la-directora-v1';
+const CACHE = 'la-directora-v2';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.json'])).then(() => self.skipWaiting()));
