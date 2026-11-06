@@ -8,7 +8,7 @@ import { LESSONS } from '../data/lessons.js';
 
 const OCC_TARGET = { playa: 0.62, centro: 0.6, carretera: 0.5 };
 // Monthly profit that earns the third star.
-export const PROFIT_GOAL = { playa: 150_000, centro: 70_000, carretera: 40_000 };
+export const PROFIT_GOAL = { playa: 150_000, centro: 70_000, carretera: 50_000 };
 
 export const MANDATES = [
   { id: 'llenar', title: 'Llenar el hotel',
@@ -167,3 +167,31 @@ export function resolveMeeting(s, m, picked, answers) {
 }
 
 export const occTarget = (s) => OCC_TARGET[loc(s).id];
+
+// Month-to-date progress toward the three stars, shown every morning so the goal is always in sight.
+export function monthProgress(s, monthDays) {
+  const month = Math.floor((s.day - 1) / DAYS_PER_MONTH) + 1;
+  const mandate = mandateFor(month);
+  const sum = (f) => monthDays.reduce((a, r) => a + f(r), 0);
+  const rooms = sum((r) => r.rooms) || 1;
+  const occ = sum((r) => r.soldTotal) / rooms;
+  const profit = sum((r) => r.profit);
+  const revenue = sum((r) => r.revenue);
+  const startCash = s.monthStartCash ?? s.startCash;
+  const prevRevenue = s.months[s.months.length - 1]?.revenue ?? 0;
+  const goal = PROFIT_GOAL[s.locationId];
+  const first = {
+    llenar: { label: `Cuartos llenos del mes (meta ${pct(OCC_TARGET[s.locationId])})`, value: pct(occ), ok: occ >= OCC_TARGET[s.locationId] && s.cash > 0, fill: occ / OCC_TARGET[s.locationId] },
+    caja: { label: `Caja vs. inicio del mes (${money(startCash)})`, value: money(s.cash), ok: profit > 0 && s.cash >= startCash, fill: s.cash / startCash },
+    felices: { label: 'Reseñas 4.0★ y ánimo 60+', value: `${s.reputation.toFixed(1)}★ · ${Math.round(s.morale)}`, ok: s.reputation >= 4 && s.morale >= 60, fill: Math.min(s.reputation / 4, s.morale / 60) },
+    crecer: { label: `Ingresos del mes (meta ${money(prevRevenue * 1.1)})`, value: money(revenue), ok: revenue >= prevRevenue * 1.1, fill: revenue / (prevRevenue * 1.1 || 1) },
+  }[mandate.id];
+  return {
+    mandate,
+    rows: [
+      { stars: 1, ...first },
+      { stars: 2, label: 'Ganancia del mes mayor a $0', value: money(profit), ok: profit > 0, fill: profit > 0 ? 1 : 0 },
+      { stars: 3, label: `Ganancia de ${money(goal)} y reseñas 3.8★`, value: `${money(profit)} · ${s.reputation.toFixed(1)}★`, ok: profit >= goal && s.reputation >= 3.8, fill: Math.max(0, profit) / goal },
+    ],
+  };
+}

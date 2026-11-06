@@ -9,6 +9,8 @@ import { renderGame, setNav } from './ui/game.js';
 import { renderBoard, setBoardNav } from './ui/board.js';
 import { renderBook, setBookRedraw } from './ui/book.js';
 import { discover } from './engine/lessons.js';
+import { LESSONS } from './data/lessons.js';
+import { BOARD } from './data/world.js';
 
 const nav = {
   title: () => titleScreen(),
@@ -32,11 +34,20 @@ function titleScreen() {
       h('p', { class: 'title-sub' }, saved
         ? `${saved.hotelName} te espera. El Consejo quiere resultados.`
         : 'Dirige tu propio hotel. Toma decisiones, cuida a tu equipo y rinde cuentas al Consejo.'),
+      sayingOfTheDay(saved),
       h('div', { class: 'title-actions' },
         saved && saved.phase !== 'closed'
           ? h('button', { class: 'btn btn-primary btn-big', onclick: () => { sfx('tap'); renderGame(); } }, '▶ Continuar')
           : null,
         h('button', { class: `btn ${saved ? 'btn-ghost' : 'btn-primary btn-big'}`, onclick: () => newGame(!!saved) }, saved ? 'Nueva partida' : '🔑 Empezar')))));
+}
+
+// Each session opens with one saying she already learned: a small, daily retrieval cue.
+function sayingOfTheDay(saved) {
+  const known = LESSONS.filter((l) => saved?.lessons?.[l.id]?.level);
+  if (!known.length) return null;
+  const l = known[(new Date().getDate() + known.length) % known.length];
+  return h('div', { class: 'saying' }, h('small', null, `📖 Frase para hoy · ${BOARD[l.by].name}`), h('b', null, `${l.icon} “${l.phrase}”`));
 }
 
 async function newGame(hasSave) {

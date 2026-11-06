@@ -7,7 +7,7 @@ import {
 } from '../data/world.js';
 import { newGame, attrDemandBonus, expectationPenalty } from '../engine/sim.js';
 import { discover } from '../engine/lessons.js';
-import { startMorning } from '../engine/flow.js';
+import { startMorning, pickChallenge } from '../engine/flow.js';
 import { app, mount, avatar, sfx, botones } from './core.js';
 import { lessonNew } from './inbox.js';
 import { hotelSvg } from './hotel.js';
@@ -177,6 +177,7 @@ export function startPrologue(onDone, carry = null) {
           });
           if (carry) { s.badges = carry.badges; s.stars = carry.stars; s.monthStars = carry.monthStars; }
           startMorning(s);
+          pickChallenge(s);
           app.s = s;
           sfx('fanfare');
           onDone(s);

@@ -2,6 +2,7 @@
 // mode: 'morning' (sunrise, dirty rooms waiting), 'day' (animation), 'evening' (sunset, results).
 
 import { loc } from '../engine/sim.js';
+import { rank } from '../data/badges.js';
 
 const SKY = {
   morning: ['#FFD9B8', '#BFE7EE'],
@@ -56,6 +57,8 @@ export function hotelSvg(s, { mode = 'morning', result = null, name, compact = f
   const night = mode === 'evening' || mode === 'title';
   const hotelName = (name || s?.hotelName || 'Hotel Coral').toUpperCase();
   const isBeach = !s || s.locationId === 'playa';
+  // The hotel grows with her career rank: each rank adds something visible.
+  const lvl = s ? rank(s).index : 3;
 
   let roomsSvg = '';
   rooms.forEach((r, i) => {
@@ -97,6 +100,9 @@ export function hotelSvg(s, { mode = 'morning', result = null, name, compact = f
     <rect y="${groundY}" width="${W}" height="${H - groundY}" fill="${isBeach ? '#F6DFA8' : '#9AD3A8'}"/>
     ${s?.locationId === 'carretera' ? `<rect y="${groundY + 30}" width="${W}" height="26" fill="#5A6485"/><path d="M0 ${groundY + 43} h${W}" stroke="#FFC24B" stroke-width="3" stroke-dasharray="24 18"/>` : ''}
     <g transform="translate(70 ${groundY - 160})"><rect x="16" y="20" width="10" height="145" rx="5" fill="#8B5E3C"/><path d="M21 22 q-55 -8 -80 22 q38 -18 80 -16 q-26 -36 -74 -34 q50 6 74 28 q18 -42 58 -46 q-46 20 -54 48 q44 -12 76 10 q-44 -6 -80 -12z" fill="#2FA36B"/></g>
+    ${lvl >= 5 ? tower(bx, by, bw, groundY, night) : ''}
+    ${isBeach && !night ? `<g class="boat"><path d="M600 ${groundY - 34} h56 l-8 12 h-40z" fill="#fff"/><path d="M628 ${groundY - 36} v-34 l20 30z" fill="#FF6B57"/></g>` : ''}
+    ${!night ? `<g class="birds" fill="none" stroke="#18203B" stroke-width="2" stroke-linecap="round" opacity=".55"><path d="M90 140 q6 -6 12 0 q6 -6 12 0"/><path d="M130 120 q5 -5 10 0 q5 -5 10 0"/></g>` : ''}
     <g filter="url(#soft)">
       <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="14" fill="url(#wall)"/>
       <rect x="${bx - 14}" y="${by - 30}" width="${bw + 28}" height="36" rx="10" fill="#FF6B57"/>
@@ -115,6 +121,7 @@ export function hotelSvg(s, { mode = 'morning', result = null, name, compact = f
       ${night || mode === 'title' ? '<path d="M-20 0 h4 M-13 0 h4" stroke="#18203B" stroke-width="1.6"/><text class="zzz" x="-4" y="-14" font-size="12" font-weight="800" fill="#18203B">z</text>' : '<circle cx="-19" cy="0" r="1.8" fill="#18203B"/><circle cx="-12" cy="0" r="1.8" fill="#18203B"/>'}
       <path class="cat-tail" d="M16 8 q14 -4 12 -20" stroke="#F28C38" stroke-width="5" fill="none" stroke-linecap="round"/>
     </g>
+    ${decorations(lvl, { bx, bw, by, ly, lobbyH, groundY, night, isBeach, gap })}
     ${mode === 'day' ? `<g class="walker" transform="translate(${bx + bw + 60} ${groundY - 46})"><circle cx="0" cy="0" r="12" fill="#18203B"/><rect x="-12" y="12" width="24" height="30" rx="8" fill="#18203B"/><rect x="14" y="20" width="18" height="22" rx="4" fill="#FF6B57"/></g>` : ''}
     <g transform="translate(${bx + bw + 30} ${groundY - 180})" opacity="${s ? 1 : 0.9}">
       <rect width="120" height="180" rx="8" fill="${night ? '#3B3F72' : '#D4DDE8'}"/>
@@ -156,6 +163,45 @@ export function animateDay(svg, result, s) {
     });
     setTimeout(resolve, 600 + groups.length * 140);
   });
+}
+
+export const UNLOCKS = [
+  'Tu hotel, recién comprado',
+  'Macetas en la entrada y bandera en el techo',
+  'Toldo de rayas y luces en la entrada',
+  'Alberca, fuente o jardín',
+  'Letrero de neón con estrellas',
+  'Una segunda torre para tu hotel',
+];
+
+function decorations(lvl, { bx, bw, by, ly, lobbyH, groundY, night, isBeach, gap }) {
+  let out = '';
+  if (lvl >= 1) {
+    out += `<g><rect x="${bx + bw / 2 - 1}" y="${by - 74}" width="3" height="44" fill="#5A6485"/><path class="flag" d="M${bx + bw / 2 + 2} ${by - 74} h26 l-6 8 l6 8 h-26z" fill="#FF6B57"/></g>`;
+    for (const px of [bx - 6, bx + bw - 14]) out += `<g transform="translate(${px} ${groundY - 26})"><path d="M0 8 h20 l-3 18 h-14z" fill="#E07A5F"/><circle cx="6" cy="4" r="7" fill="#2FA36B"/><circle cx="14" cy="2" r="8" fill="#3FBF7F"/><circle cx="10" cy="-4" r="4" fill="#FF8FB1"/></g>`;
+  }
+  if (lvl >= 2) {
+    const dx = bx + bw - 108;
+    out += `<g><path d="M${dx} ${ly + 8} h86 l-6 16 h-74z" fill="#fff"/>${[0, 1, 2, 3, 4].map((k) => `<path d="M${dx + 6 + k * 16} ${ly + 8} h8 l-1 16 h-8z" fill="#FF6B57"/>`).join('')}</g>`;
+    if (night) out += [0, 1, 2, 3, 4, 5, 6].map((k) => `<circle cx="${bx + gap + 20 + k * 60}" cy="${ly + 4}" r="3.5" fill="#FFE28A"/>`).join('');
+  }
+  if (lvl >= 3) {
+    out += isBeach
+      ? `<g transform="translate(20 ${groundY + 8})"><rect width="130" height="34" rx="17" fill="#fff"/><rect x="6" y="5" width="118" height="24" rx="12" fill="#5FD4E8"/><path d="M20 17 q10 -5 20 0 t20 0 t20 0 t20 0" stroke="#fff" stroke-width="2" fill="none" opacity=".8"/></g>`
+      : `<g transform="translate(60 ${groundY + 6})"><ellipse cx="40" cy="22" rx="42" ry="12" fill="#C9D3E6"/><ellipse cx="40" cy="20" rx="34" ry="8" fill="#5FD4E8"/><rect x="36" y="2" width="8" height="18" rx="3" fill="#C9D3E6"/><circle cx="40" cy="2" r="5" fill="#8BE3E6"/></g>`;
+  }
+  if (lvl >= 4) {
+    out += `<g transform="translate(${bx + 20} ${by - 66})"><rect width="110" height="30" rx="10" fill="#18203B" stroke="${night ? '#FF8FB1' : '#A78BFA'}" stroke-width="3"/><text x="55" y="21" text-anchor="middle" font-size="15" fill="${night ? '#FFE28A' : '#FFC24B'}" font-weight="800">★★★★★</text></g>`;
+  }
+  return out;
+}
+
+function tower(bx, by, bw, groundY, night) {
+  const tx = bx + bw - 30;
+  const th = groundY - by + 60;
+  let win = '';
+  for (let r = 0; r < Math.floor(th / 44); r++) for (let c = 0; c < 2; c++) win += `<rect x="${tx + 18 + c * 40}" y="${groundY - th + 20 + r * 44}" width="28" height="26" rx="5" fill="${night ? (r + c) % 3 ? '#FFE28A' : '#3B3F72' : '#BFE7EE'}"/>`;
+  return `<g opacity=".95"><rect x="${tx}" y="${groundY - th}" width="104" height="${th}" rx="12" fill="${night ? '#2D2A5C' : '#F3E6D3'}"/>${win}</g>`;
 }
 
 const BLANKET = { std: '#A78BFA', mar: '#2EC4C9', suite: '#FFC24B', fam: '#FF8FB1' };

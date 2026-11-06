@@ -6,11 +6,13 @@ import { resolveEvent, playDay, finishEvening, advanceAfterDay, nextDay, hire, f
 import { EVENT_BY_ID } from '../data/events.js';
 import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER, TRAINING_DAYS } from '../data/world.js';
 import { rank } from '../data/badges.js';
-import { mandateFor, PROFIT_GOAL } from '../engine/board.js';
+import { mandateFor, PROFIT_GOAL, monthProgress } from '../engine/board.js';
 import { saveGame } from '../store.js';
 import { app, mount, sfx, botones, toast, modal, confetti } from './core.js';
 import { hotelSvg, animateDay } from './hotel.js';
 import { drainInbox, pendingLessons } from './inbox.js';
+import { CHALLENGE_BY_ID, challengeText } from '../data/challenges.js';
+import { LESSON_BY_ID } from '../data/lessons.js';
 
 let nav = {};
 export function setNav(n) { nav = n; }
@@ -117,6 +119,7 @@ function morning(s, panel, scene) {
     const p = preview(s);
     put(panel, 
       header(s),
+      progressCard(s),
       s.eventResult ? h('div', { class: 'alert info' }, '📣 ', s.eventResult) : null,
       tip(s, p),
       forecastCard(s),
@@ -136,7 +139,44 @@ function header(s) {
     h('div', null,
       h('h2', { style: { fontSize: '26px' } }, `Buenos días, Directora`),
       h('div', { class: 'muted-dark', style: { fontSize: '14px' } }, `${dateLabel(s.day)} · Semana ${c.week} · Día ${c.dayOfMonth} de 28 del mes`)),
-    h('button', { class: 'btn btn-ghost', style: { minHeight: '40px', padding: '0 14px', fontSize: '14px' }, onclick: () => showMandate(s) }, '🎯 Mandato'));
+    h('button', { class: 'btn btn-ghost', style: { minHeight: '40px', padding: '0 14px', fontSize: '14px' }, onclick: () => showHint(s) }, '💡 Pista'));
+}
+
+// On-demand hint: Botones only speaks unasked during the first weeks; after that she asks when stuck.
+function showHint(s) {
+  const p = preview(s);
+  const text = tipText(s, p, true) || 'Todo se ve en orden. Revisa el pronóstico: ¿qué día viene más gente? Ahí está tu oportunidad.';
+  sfx('tap');
+  return modal((close) => h('div', { class: 'msg-card' },
+    botones(text),
+    h('button', { class: 'btn btn-primary btn-block', onclick: () => close() }, 'Gracias, Botones')), { dismissable: true });
+}
+
+function progressCard(s) {
+  const c = calendar(s.day);
+  const monthDays = s.history.filter((r) => calendar(r.day).month === c.month && Math.ceil(r.day / 28) === Math.ceil(s.day / 28));
+  const p = monthProgress(s, monthDays);
+  const left = 28 - c.dayOfMonth + 1;
+  return h('div', { class: 'card card-dark stack progress-card' },
+    h('div', { class: 'row between' },
+      h('div', null, h('span', { class: 'kicker' }, `Mandato del mes ${c.month}`), h('h3', null, `🎯 ${p.mandate.title}`)),
+      h('div', { class: 'days-left' }, h('b', null, left), h('small', null, left === 1 ? 'día' : 'días'))),
+    p.rows.map((r) => h('div', { class: `goal ${r.ok ? 'ok' : ''}` },
+      h('span', { class: 'gstars' }, '⭐'.repeat(r.stars)),
+      h('div', { class: 'gbody' },
+        h('div', { class: 'row between' }, h('small', null, r.label), h('b', null, r.value)),
+        h('div', { class: 'gbar' }, h('i', { style: { width: Math.round(Math.max(0, Math.min(1, r.fill)) * 100) + '%' } }))),
+      h('span', { class: 'gcheck', 'aria-label': r.ok ? 'Cumplida' : 'Pendiente' }, r.ok ? '✓' : ''))),
+    monthDays.length === 0 ? h('small', { class: 'muted-dark' }, 'El Consejo revisa estas metas en la junta del día 28.') : null,
+    s.challenge ? challengeRow(s) : null);
+}
+
+function challengeRow(s) {
+  const c = CHALLENGE_BY_ID[s.challenge.id];
+  const daysLeft = 7 - calendar(s.day).dow;
+  return h('div', { class: 'challenge' },
+    h('span', { class: 'cicon' }, c.icon),
+    h('div', null, h('small', null, `Reto de la semana · ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} · premio ${money(c.reward)}`), h('b', null, `${c.title}: `), challengeText(c, s)));
 }
 
 function eventCard(s, ev) {
@@ -159,19 +199,32 @@ function eventCard(s, ev) {
 }
 
 function tip(s, p) {
+  const text = tipText(s, p, false);
+  return text ? botones(text) : null;
+}
+
+// Returns Botones' advice for this morning. Unprompted advice fades after week 3 (scaffolding);
+// when she already learned the saying that fits the situation, Botones reminds her of it instead.
+function tipText(s, p, asked) {
   const fcToday = p.forecast.total;
   const rooms = totalRooms(s);
   const L = loc(s);
   const avgRatio = L.rooms.reduce((a, r) => a + s.prices[r.id] / refEff(s, r), 0) / L.rooms.length;
-  let text = null;
-  if (s.day === 1) text = '¡Bienvenida, Directora! Soy <b>Botones</b>. Cada mañana decides <b>precios</b> y <b>limpieza</b>. Mira el pronóstico: entre semana viene menos gente que el fin de semana. Cuando estés lista, toca <b>Abrir el día</b>.';
-  else if (p.lostDirty > 0) text = `Hoy hay <b>${p.dirtyStart} cuartos por limpiar</b> y tu equipo solo puede limpiar <b>${p.capacity}</b>. Un cuarto sucio no se puede vender. ¿Horas extra o contratar?`;
-  else if (s.day === 2) text = 'Cada cuarto ocupado anoche hay que <b>limpiarlo hoy</b>. Si no alcanzan tus recamaristas, ese cuarto no se vende.';
-  else if (s.day === 3) text = 'Mira el <b>pronóstico</b>: las barras rojas son días con mucha gente buscando cuarto. ¿Cobrarías lo mismo esos días?';
-  else if (fcToday > rooms * 1.05 && avgRatio <= 1.02 && s.day <= 21) text = 'Hoy viene <b>más gente de la que cabe</b>. Cuando hay mucha demanda, un precio un poco más alto puede darte más ganancia.';
-  else if (fcToday < rooms * 0.6 && avgRatio > 1.05 && s.day <= 21) text = 'Hoy hay <b>poca demanda</b> y tu precio está alto. Recuerda: un cuarto vacío esta noche no se puede vender mañana.';
-  else if (s.day === 6) text = 'Al final de cada semana verás tu <b>reporte</b>, y al final del mes tendrás <b>junta con el Consejo</b>. ¡Prepárate!';
-  return text ? botones(text) : null;
+  const early = s.day <= 21 || asked;
+  const recall = (id, fallback) => (s.lessons[id]?.level ? `${fallback}<br><b>📖 Recuerda: “${LESSON_BY_ID[id].phrase}”</b>` : fallback);
+  if (s.day === 1) return '¡Bienvenida, Directora! Soy <b>Botones</b>. Cada mañana decides <b>precios</b> y <b>limpieza</b>. Mira el pronóstico: entre semana viene menos gente que el fin de semana. Cuando estés lista, toca <b>Abrir el día</b>.';
+  if (p.lostDirty > 0) return recall('ejecucion', `Hoy hay <b>${p.dirtyStart} cuartos por limpiar</b> y tu equipo solo puede limpiar <b>${p.capacity}</b>. Un cuarto sucio no se puede vender. ¿Horas extra o contratar?`);
+  if (s.cash < weekCost(s)) return recall('cash_king', 'Tu caja está muy baja. Cuida cada gasto y busca días donde puedas ganar más.');
+  if (s.morale < 50) return recall('equipo', 'Tu equipo está cansado. Un equipo cansado limpia más lento y atiende peor.');
+  if (s.day === 2) return 'Cada cuarto ocupado anoche hay que <b>limpiarlo hoy</b>. Si no alcanza tu equipo, ese cuarto no se vende.';
+  if (s.day === 3) return 'Mira el <b>pronóstico</b>: las barras rojas son días con más gente que cuartos. ¿Cobrarías lo mismo esos días?';
+  if (s.day === 4) return 'Dato real: en México los hoteles se llenan en promedio <b>60%</b>. Casi nunca están llenos, por eso cada cuarto vendido cuenta.';
+  if (s.mods.some((m) => m.label === 'Descuento de Marea Inn' && s.day >= m.from && s.day <= m.to)) return recall('guerra_precios', 'Marea Inn bajó sus precios. ¿Los igualas o defiendes lo que te hace distinta?');
+  if (early && fcToday > rooms * 1.05 && avgRatio <= 1.02) return 'Hoy viene <b>más gente de la que cabe</b>. Cuando hay mucha demanda, un precio un poco más alto puede darte más ganancia.';
+  if (early && fcToday < rooms * 0.6 && avgRatio > 1.05) return recall('cuarto_vacio', 'Hoy hay <b>poca demanda</b> y tu precio está alto. Un cuarto vacío esta noche no se puede vender mañana.');
+  if (calendar(s.day).dayOfMonth === 28) return recall('palabra', 'Hoy es día de pago al banco. ¿Tienes suficiente en caja?');
+  if (s.day === 6) return 'Al final de cada semana verás tu <b>reporte</b>, y al final del mes tendrás <b>junta con el Consejo</b>. ¡Prepárate!';
+  return null;
 }
 
 function forecastCard(s) {
@@ -365,7 +418,8 @@ function week(s, panel) {
         h('div', { class: 'ln' }, h('span', null, '🌧️ Día más flojo'), h('b', null, `${DAYS[worst.dow]} · ${money(worst.profit)}`)),
         h('div', { class: 'ln' }, h('span', null, '🧹 Huéspedes perdidos por cuartos sucios'), h('b', { style: { color: w.lostDirty ? 'var(--bad)' : 'var(--good)' } }, w.lostDirty)),
         h('div', { class: 'ln' }, h('span', null, '🛏️ Noches de cuarto vacías'), h('b', null, w.emptyNights)),
-        h('div', { class: 'ln' }, h('span', null, '⭐ Reseñas'), h('b', null, `${w.repStart.toFixed(2)} → ${w.reputation.toFixed(2)}`)))),
+        h('div', { class: 'ln' }, h('span', null, '⭐ Reseñas'), h('b', null, `${w.repStart.toFixed(2)} → ${w.reputation.toFixed(2)}`)),
+        w.challenge ? h('div', { class: 'ln' }, h('span', null, `🎯 Reto: ${CHALLENGE_BY_ID[w.challenge.id].title}`), h('b', { style: { color: w.challenge.won ? 'var(--good)' : 'var(--bad)' } }, w.challenge.won ? '✅ Cumplido' : '❌ No esta vez')) : null)),
     h('div', { class: 'card stack' },
       h('span', { class: 'kicker' }, '📓 Mi diario de Directora'),
       h('b', null, q),

@@ -5,6 +5,7 @@ import { LESSONS, CHAPTER_NAMES, LEVELS } from '../data/lessons.js';
 import { BADGES, RANKS, rank } from '../data/badges.js';
 import { BOARD } from '../data/world.js';
 import { saveGame } from '../store.js';
+import { UNLOCKS } from './hotel.js';
 import { app, mount, modal, avatar, audioPlayer, sfx } from './core.js';
 
 let tab = 'lessons';
@@ -94,6 +95,10 @@ function career(s) {
       h('div', { class: 'rank-bar' }, h('i', { style: { width: Math.round(progress * 100) + '%' } })),
       h('small', { class: 'muted-dark' }, r.next ? `Te faltan ${r.next.points - r.pts} puntos para ${r.next.name}.` : '¡Llegaste al rango más alto!'),
       h('div', { class: 'ranks' }, RANKS.map((x, i) => h('span', { class: i < r.index ? 'done' : i === r.index ? 'now' : '' }, x.name)))),
+    h('div', { class: 'card stack' },
+      h('b', null, '🏗️ Tu hotel crece contigo'),
+      h('div', { class: 'pl' }, RANKS.map((x, i) => h('div', { class: 'ln' },
+        h('span', null, `${i <= r.index ? '✅' : '🔒'} ${x.name}`), h('span', { class: 'muted', style: { textAlign: 'right' } }, UNLOCKS[i]))))),
     h('div', { class: 'card stack' },
       h('b', null, 'Cómo ganas puntos'),
       h('div', { class: 'pl' },

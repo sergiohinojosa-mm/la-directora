@@ -3,7 +3,11 @@
 
 import { h } from '../util.js';
 import { LESSON_BY_ID } from '../data/lessons.js';
-import { BADGE_BY_ID } from '../data/badges.js';
+import { BADGE_BY_ID, RANKS } from '../data/badges.js';
+import { UNLOCKS } from './hotel.js';
+import { CHALLENGE_BY_ID, challengeText } from '../data/challenges.js';
+import { money } from '../util.js';
+import { app } from './core.js';
 import { BOARD } from '../data/world.js';
 import { modal, avatar, audioPlayer, confetti, sfx } from './core.js';
 
@@ -21,6 +25,7 @@ export async function drainInbox(s, save, { onlyRewards = false } = {}) {
     else if (item.kind === 'applied' || item.kind === 'mastered') await lessonLevel(item.id, item.kind, item.ctx);
     else if (item.kind === 'badge') await badge(item.badge);
     else if (item.kind === 'rank') await rankUp(item.rank);
+    else if (item.kind === 'challenge') await challengeWon(item.id);
   }
 }
 
@@ -75,6 +80,20 @@ function badge(id) {
   ));
 }
 
+function challengeWon(id) {
+  const c = CHALLENGE_BY_ID[id];
+  sfx('fanfare');
+  confetti(0.8);
+  return modal((close) => h('div', { class: 'msg-card' },
+    h('div', { class: 'badge-big' }, c.icon),
+    h('div', { class: 'from' }, 'Reto semanal cumplido'),
+    h('div', { class: 'quote' }, c.title),
+    h('p', { class: 'meaning' }, challengeText(c, app.s)),
+    h('div', { class: 'tip-box' }, h('b', null, '🎁 Premio del Consejo: '), `${money(c.reward)} para el hotel y 1 punto de carrera.`),
+    h('button', { class: 'btn btn-primary btn-block', onclick: () => close() }, '¡Lo logré!'),
+  ));
+}
+
 function rankUp(name) {
   sfx('fanfare');
   confetti(1.4);
@@ -83,6 +102,7 @@ function rankUp(name) {
     h('div', { class: 'from' }, 'Subiste de rango'),
     h('div', { class: 'quote' }, name),
     h('p', { class: 'meaning' }, 'El Consejo reconoce tu crecimiento como directora. Tu nuevo título ya aparece en tu tarjeta.'),
+    h('div', { class: 'tip-box' }, h('b', null, '🏗️ Tu hotel se mejoró: '), UNLOCKS[RANKS.findIndex((r) => r.name === name)] || ''),
     h('button', { class: 'btn btn-primary btn-block', onclick: () => close() }, '¡Vamos!'),
   ));
 }

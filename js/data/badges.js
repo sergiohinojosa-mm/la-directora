@@ -17,6 +17,8 @@ export const BADGES = [
   { id: 'diario', icon: '📓', name: 'Directora reflexiva', desc: 'Escribiste 4 veces en tu diario.', on: 'week', check: (s) => s.diary.filter((d) => d.answer).length >= 4 },
   { id: 'racha4', icon: '🔥', name: 'Racha de oro', desc: '4 semanas seguidas con ganancia.', on: 'week', check: (s) => s.weeks.length >= 4 && s.weeks.slice(-4).every((w) => w.profit > 0) },
   { id: 'diario10', icon: '✍️', name: 'Escritora de negocios', desc: 'Escribiste 10 veces en tu diario.', on: 'week', check: (s) => s.diary.filter((d) => d.answer).length >= 10 },
+  { id: 'retos3', icon: '🎯', name: 'Retadora', desc: 'Ganaste 3 retos semanales.', on: 'week', check: (s) => (s.challengesWon || 0) >= 3 },
+  { id: 'retos10', icon: '🏹', name: 'Imparable', desc: 'Ganaste 10 retos semanales.', on: 'week', check: (s) => (s.challengesWon || 0) >= 10 },
   { id: 'mes_ganancia', icon: '🏆', name: 'Mes rentable', desc: 'Cerraste un mes con ganancia.', on: 'month', check: (s, m) => m.profit > 0 },
   { id: 'caja_fuerte', icon: '🔐', name: 'Caja fuerte', desc: 'Terminaste un mes con más caja de la que empezaste.', on: 'month', check: (s, m) => m.cash > m.startCash },
   { id: 'trimestre', icon: '📅', name: 'Trimestre sólido', desc: '3 meses seguidos con ganancia.', on: 'month', check: (s) => s.months.length >= 3 && s.months.slice(-3).every((m) => m.profit > 0) },
@@ -51,7 +53,7 @@ export const RANKS = [
 export function points(s) {
   const stars = Object.values(s.monthStars || {}).reduce((a, b) => a + b, 0);
   const lessons = Object.values(s.lessons).reduce((a, l) => a + Math.max(0, l.level - 1), 0);
-  return (s.badges?.length ?? 0) + stars * 2 + lessons;
+  return (s.badges?.length ?? 0) + stars * 2 + lessons + (s.challengesWon || 0);
 }
 
 export function rank(s) {

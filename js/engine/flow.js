@@ -5,9 +5,17 @@ import { EVENTS, EVENT_BY_ID } from '../data/events.js';
 import { simulateDay, summarize, weekCost } from './sim.js';
 import { afterDay, afterWeek, afterMonth, afterHire, discover, applyLesson } from './lessons.js';
 import { checkBadges } from '../data/badges.js';
+import { CHALLENGES, CHALLENGE_BY_ID } from '../data/challenges.js';
 import { hire as hireOne, fire as fireOne } from './sim.js';
 
 const EVENT_CHANCE = 0.5;
+
+// A new weekly challenge every Monday, never the same as last week.
+export function pickChallenge(s) {
+  const last = s.challenge?.id;
+  const pool = CHALLENGES.filter((c) => c.id !== last);
+  s.challenge = { id: pool[Math.floor(rng(s) * pool.length)].id, week: calendar(s.day).week };
+}
 
 // The adaptive game director: a hotel doing well gets more bad news, one struggling gets less.
 function difficulty(s) {
@@ -82,6 +90,12 @@ export function advanceAfterDay(s) {
     const prev = s.weeks[s.weeks.length - 1];
     s.weeks.push(w);
     afterWeek(s, w, prev);
+    if (s.challenge) {
+      const c = CHALLENGE_BY_ID[s.challenge.id];
+      const won = c.check(s, w, s.history.slice(-7));
+      w.challenge = { id: c.id, won };
+      if (won) { s.cash += c.reward; s.challengesWon = (s.challengesWon || 0) + 1; s.inbox.push({ kind: 'challenge', id: c.id }); }
+    }
     checkBadges(s, 'week', w, prev);
     s.phase = 'week';
     return s.phase;
@@ -101,5 +115,6 @@ export function advanceAfterDay(s) {
 export function nextDay(s) {
   if (calendar(s.day).dayOfMonth === DAYS_PER_MONTH) s.monthStartCash = s.cash;
   s.day += 1;
+  if (calendar(s.day).dow === 0 || !s.challenge) pickChallenge(s);
   startMorning(s);
 }
