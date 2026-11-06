@@ -86,4 +86,11 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http') && loca
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
+// ?borrar=1 wipes this device's saved game (lessons, badges and diary too) so a new player starts clean.
+if (new URLSearchParams(location.search).has('borrar')) {
+  try { localStorage.removeItem('ladirectora.save.v1'); } catch { /* storage blocked */ }
+  app.s = null;
+  history.replaceState(null, '', location.pathname);
+}
+
 titleScreen();
