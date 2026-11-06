@@ -5,6 +5,7 @@
 import { clamp, calendar } from '../util.js';
 import { LOCATIONS } from './world.js';
 import { CHAPTER_EVENTS } from './events-chapters.js';
+import { DAILY_EVENTS } from './events-daily.js';
 
 const firstRoom = (s) => LOCATIONS.find((l) => l.id === s.locationId).rooms[0].id;
 
@@ -162,7 +163,7 @@ const CH1_EVENTS = [
   },
 ];
 
-export const EVENTS = [...CH1_EVENTS.map((e) => ({ ch: 1, ...e })), ...CHAPTER_EVENTS];
+export const EVENTS = [...CH1_EVENTS.map((e) => ({ ch: 1, ...e })), ...CHAPTER_EVENTS, ...DAILY_EVENTS.map((e) => ({ ch: 1, ...e }))];
 export const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 
 // Cards can have text that depends on the hotel (functions); this resolves them.

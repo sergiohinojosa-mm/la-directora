@@ -53,6 +53,11 @@ export function startMorning(s) {
   s.event = null;
   s.eventResult = null;
   s.notices = [];
+  if (s.flags.restorePrices) {
+    s.prices = { ...s.prices, ...s.flags.restorePrices };
+    delete s.flags.restorePrices;
+    s.notices.push('🏷️ Terminó la promoción relámpago: tus precios regresaron a como estaban.');
+  }
   const ch = chapterFor(s);
   if (s.plan.status === 'building' && s.day >= s.plan.readyDay) {
     finishProject(s);
@@ -68,13 +73,25 @@ export function startMorning(s) {
     s.eventsSeen.push(forced);
     return;
   }
-  if (rng(s) > EVENT_CHANCE) return;
+  if (rng(s) > EVENT_CHANCE) return quickDecision(s);
   const recent = s.eventsSeen.slice(-10);
   const d = difficulty(s);
-  const pool = EVENTS.filter((e) => !e.forced && !(e.once && s.eventsSeen.includes(e.id)) && (e.ch ?? 1) <= ch && s.day >= (e.minDay ?? 0) && !recent.includes(e.id) && (!e.when || e.when(s)));
-  if (!pool.length) return;
+  const pool = EVENTS.filter((e) => !e.forced && !e.quick && !(e.once && s.eventsSeen.includes(e.id)) && (e.ch ?? 1) <= ch && s.day >= (e.minDay ?? 0) && !recent.includes(e.id) && (!e.when || e.when(s)));
+  if (!pool.length) return quickDecision(s);
   // Cards of the current chapter come up more often, so each chapter feels new.
   const ev = pickWeighted(s, pool, (e) => (e.negative ? 1 + d * 0.6 : 1 - d * 0.4) * ((e.ch ?? 1) === ch ? 2.5 : 1));
+  s.event = { id: ev.id };
+  s.eventsSeen.push(ev.id);
+}
+
+// Every morning without a story card still brings one quick choice, so no day is just "next".
+// Slow days ask what to do with empty rooms and free hands; busy days bring guest requests.
+function quickDecision(s) {
+  const slow = forecast(s, s.day).total < totalRooms(s) * 0.8;
+  const recent = s.eventsSeen.slice(-6);
+  const pool = EVENTS.filter((e) => e.quick === (slow ? 'slow' : 'busy') && !recent.includes(e.id) && (!e.when || e.when(s)));
+  if (!pool.length) return;
+  const ev = pool[Math.floor(rng(s) * pool.length)];
   s.event = { id: ev.id };
   s.eventsSeen.push(ev.id);
 }

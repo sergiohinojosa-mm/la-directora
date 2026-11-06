@@ -282,7 +282,7 @@ function steps(s, p) {
     { id: 'pronostico', n: 1, short: 'Pronóstico', title: 'Mira cuánta gente viene', state: 'info', hint: `Hoy buscan cuarto unas ${Math.round(fc)} personas y tienes ${rooms} cuartos.${busy ? ' 🔴 Día lleno.' : slow ? ' 🔵 Día flojo.' : ''}` },
     { id: 'precios', n: 2, short: 'Precios', title: 'Decide tus precios', ...price },
     { id: 'limpieza', n: 3, short: 'Limpieza', title: 'Revisa tu equipo de limpieza', ...cleanSt },
-    { id: 'abrir', n: 4, short: 'Abrir el día', title: 'Revisa el resultado y abre el día', state: price.state === 'warn' || cleanSt.state === 'warn' ? 'warn' : 'ok', hint: price.state === 'warn' || cleanSt.state === 'warn' ? 'Te falta revisar algún paso marcado en rojo.' : 'Todo listo. ¡Abre el día!' },
+    { id: 'abrir', n: 4, short: 'Resultado', title: 'Revisa el resultado y abre el día', state: price.state === 'warn' || cleanSt.state === 'warn' ? 'warn' : 'ok', hint: price.state === 'warn' || cleanSt.state === 'warn' ? 'Te falta revisar algún paso marcado en rojo.' : 'Todo listo. ¡Abre el día!' },
   ];
 }
 
@@ -326,8 +326,29 @@ function priceStep(ref) { return ref < 2000 ? 50 : 100; }
 
 function pricesCard(s, L, redraw) {
   const st = steps(s, preview(s)).find((x) => x.id === 'precios');
+  // One control for all room types, relative to each type's normal price.
+  const level = (r) => s.prices[r.id] / refEff(s, r) - 1;
+  const avg = L.rooms.reduce((a2, r) => a2 + level(r), 0) / L.rooms.length;
+  const setAll = (pctv) => {
+    for (const r of L.rooms) {
+      const step = priceStep(r.ref);
+      s.prices[r.id] = clamp(Math.round((refEff(s, r) * (1 + pctv)) / step) * step, Math.round(r.ref * 0.4 / step) * step, Math.round(r.ref * 2.5 / step) * step);
+    }
+    sfx('tap'); save(); redraw();
+  };
+  const nudge = (d) => setAll(Math.round((avg + d) * 20) / 20);
   return h('div', { class: `card stack step-card ${st.state}`, id: 'step-precios' },
     stepHead(st),
+    h('div', { class: 'all-prices' },
+      h('div', { class: 'row between' },
+        h('b', null, 'Todos los cuartos'),
+        h('div', { class: 'stepper' },
+          h('button', { 'aria-label': 'Bajar todos los precios 5%', onclick: () => nudge(-0.05) }, '−'),
+          h('div', { class: 'val' }, Math.abs(avg) < 0.025 ? 'Normal' : `${avg > 0 ? '+' : '−'}${Math.round(Math.abs(avg) * 100)}%`),
+          h('button', { 'aria-label': 'Subir todos los precios 5%', onclick: () => nudge(0.05) }, '+'))),
+      h('div', { class: 'preset-row' }, [[-0.15, '−15%', 'Día flojo'], [0, 'Normal', ''], [0.15, '+15%', 'Día lleno'], [0.3, '+30%', 'Muy lleno']].map(([v, label, sub]) => h('button', {
+        class: `preset ${L.rooms.every((r) => Math.abs(level(r) - v) < 0.03) ? 'on' : ''}`, onclick: () => setAll(v),
+      }, h('b', null, label), sub ? h('small', null, sub) : null)))),
     L.rooms.map((r) => {
       const ref = refEff(s, r);
       const diff = s.prices[r.id] / ref - 1;
