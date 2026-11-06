@@ -40,6 +40,8 @@
   <h1 id="title">🎙️ Grabadora del Consejo</h1>
   <p class="sub">Papá: cada frase es una lección que Luciana escucha en el juego justo después de vivirla. Grábala con tu voz, escúchala y, si te gusta, guárdala. Se descarga un archivo con el nombre de la lección; mándalo para ponerlo en el juego.</p>
   <div class="tip">💡 Consejo: dura 30 a 60 segundos. Di la frase y luego cuéntale una historia tuya, real y corta, de cuando la aprendiste. Termina repitiendo la frase.</div>
+  <div class="tip">💻 Mejor en la laptop con <b>Safari</b> y en un cuarto callado: cada audio queda en <b>Descargas</b> con el nombre de su lección (por ejemplo <code>cuarto_vacio.m4a</code>) y Claude los toma de ahí. No les cambies el nombre.</div>
+  <div id="wrong" class="tip" style="display:none;border-color:var(--red);color:var(--ink)">⚠️ Este navegador graba en un formato que el iPhone no reproduce. Abre esta página en <b>Safari</b>.</div>
 
   <div class="card">
     <span id="who" class="who"></span><span id="num" class="num"></span>
@@ -86,6 +88,7 @@ const $ = (id) => document.getElementById(id);
 const MIME = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
 const EXT = MIME.includes('mp4') ? 'm4a' : 'webm';
 
+if (EXT === 'webm') $('wrong').style.display = 'block';
 if (BOARD[QUIEN]) $('title').textContent = `🎙️ Grabadora de ${BOARD[QUIEN].name}`;
 
 function show() {
@@ -94,7 +97,7 @@ function show() {
   $('bar').style.width = (100 * n) / F.length + '%';
   $('count').textContent = `${n} de ${F.length} grabadas`;
   $('list').innerHTML = F.map((x, k) => `<li data-k="${k}" class="${done[x.id] ? 'done' : ''}">${BOARD[x.by].name} · “${x.phrase}”</li>`).join('');
-  if (!f) { $('phrase').textContent = '¡Terminaste todas! Gracias. Junta los archivos descargados para ponerlos en el juego. 💛'; $('meaning').textContent = ''; $('when').textContent = ''; $('rec').disabled = true; return; }
+  if (!f) { $('phrase').textContent = '¡Terminaste todas! Gracias. Avísale a Claude: los audios están en tu carpeta Descargas. 💛'; $('meaning').textContent = ''; $('when').textContent = ''; $('rec').disabled = true; return; }
   $('who').textContent = BOARD[f.by].name;
   $('num').textContent = `${i + 1} de ${F.length} · archivo ${f.id}`;
   $('phrase').textContent = `“${f.phrase}”`;
