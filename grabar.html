@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grabadora del Consejo</title>
+<style>
+  :root { --bg: #F4F6FB; --ink: #18203B; --muted: #5A6485; --card: #fff; --line: #E3E7F2; --coral: #FF6B57; --green: #1FA971; --red: #E2513E; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141B33; --ink: #F1F3FA; --muted: #A9B3D6; --card: #1E2747; --line: #2A3560; } }
+  :root[data-theme="dark"] { --bg: #141B33; --ink: #F1F3FA; --muted: #A9B3D6; --card: #1E2747; --line: #2A3560; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.5 -apple-system, system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+  .who { display: inline-block; font-size: 14px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: #FFF3D6; color: #8A5B00; }
+  .num { color: var(--muted); font-size: 14px; margin-left: 8px; }
+  .phrase { font-size: 30px; font-weight: 800; line-height: 1.25; margin: 14px 0 8px; }
+  .meaning { color: var(--muted); margin: 0 0 8px; }
+  .when { color: var(--muted); font-size: 15px; margin: 0 0 20px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  button { font: inherit; font-weight: 700; border: 0; border-radius: 14px; padding: 14px 20px; cursor: pointer; color: #fff; background: var(--coral); min-height: 56px; }
+  button.secondary { background: transparent; color: var(--ink); border: 2px solid var(--line); }
+  button.rec { background: var(--red); }
+  button.save { background: var(--green); }
+  button:disabled { opacity: .4; cursor: default; }
+  .status { margin-top: 14px; color: var(--muted); min-height: 1.5em; }
+  .bar { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 20px 0 8px; }
+  .bar div { height: 100%; background: var(--green); width: 0; }
+  .tip { background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 14px; color: var(--muted); font-size: 16px; margin-bottom: 18px; }
+  details { margin-top: 24px; }
+  ol { padding-left: 24px; }
+  li.done { color: var(--muted); text-decoration: line-through; }
+  li { cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">🎙️ Grabadora del Consejo</h1>
+  <p class="sub">Cada frase es una lección que Luciana escucha en el juego justo después de vivirla. Grábala con tu voz, escúchala y, si te gusta, guárdala. Se descarga un archivo con el nombre de la lección.</p>
+  <div class="tip">💡 Consejo: dura 30 a 60 segundos. Di la frase y luego cuéntale una historia tuya, real y corta, de cuando la aprendiste. Termina repitiendo la frase.</div>
+
+  <div class="card">
+    <span id="who" class="who"></span><span id="num" class="num"></span>
+    <div id="phrase" class="phrase"></div>
+    <p id="meaning" class="meaning"></p>
+    <p id="when" class="when"></p>
+    <div class="row">
+      <button id="rec" class="rec">⏺ Grabar</button>
+      <button id="play" class="secondary" disabled>▶ Escuchar</button>
+      <button id="save" class="save" disabled>💾 Guardar y siguiente</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="prev" class="secondary">← Anterior</button>
+      <button id="skip" class="secondary">Saltar →</button>
+    </div>
+    <div id="status" class="status"></div>
+  </div>
+
+  <div class="bar"><div id="bar"></div></div>
+  <div id="count" class="sub"></div>
+
+  <details>
+    <summary>Ver todas las frases</summary>
+    <ol id="list"></ol>
+  </details>
+</main>
+
+<script type="module">
+import { LESSONS } from './js/data/lessons.js';
+import { BOARD } from './js/data/world.js';
+
+// ?quien=papa | alma | marcela muestra solo las lecciones de esa persona.
+const QUIEN = (new URLSearchParams(location.search).get('quien') || '').toLowerCase();
+const F = LESSONS.filter((l) => !BOARD[QUIEN] || l.by === QUIEN);
+const KEY = 'grabadora.directora.hechas';
+let done = {};
+try { done = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+const saveDone = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} };
+
+let i = Math.max(0, F.findIndex((f) => !done[f.id]));
+let recorder = null, chunks = [], blob = null, stream = null;
+const $ = (id) => document.getElementById(id);
+// Safari graba en .m4a (se oye en todos lados); Chrome en .webm.
+const MIME = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'].find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+const EXT = MIME.includes('mp4') ? 'm4a' : 'webm';
+
+if (BOARD[QUIEN]) $('title').textContent = `🎙️ Grabadora de ${BOARD[QUIEN].name}`;
+
+function show() {
+  const f = F[i];
+  const n = F.filter((x) => done[x.id]).length;
+  $('bar').style.width = (100 * n) / F.length + '%';
+  $('count').textContent = `${n} de ${F.length} grabadas`;
+  $('list').innerHTML = F.map((x, k) => `<li data-k="${k}" class="${done[x.id] ? 'done' : ''}">${BOARD[x.by].name} · “${x.phrase}”</li>`).join('');
+  if (!f) { $('phrase').textContent = '¡Terminaste todas! Gracias. Mándale los archivos a Sergio. 💛'; $('meaning').textContent = ''; $('when').textContent = ''; $('rec').disabled = true; return; }
+  $('who').textContent = BOARD[f.by].name;
+  $('num').textContent = `${i + 1} de ${F.length} · archivo ${f.id}`;
+  $('phrase').textContent = `“${f.phrase}”`;
+  $('meaning').textContent = f.meaning;
+  $('when').textContent = `Suena en el juego: ${f.when}`;
+  $('status').textContent = '';
+  blob = null;
+  $('play').disabled = $('save').disabled = true;
+  $('rec').disabled = false;
+}
+
+$('rec').onclick = async () => {
+  if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
+    $('status').textContent = 'Esta página no puede usar el micrófono aquí. Ábrela desde la dirección https del juego (GitHub).';
+    return;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    chunks = [];
+    recorder = new MediaRecorder(stream, MIME ? { mimeType: MIME } : undefined);
+  } catch (e) { $('status').textContent = 'No se pudo usar el micrófono. Revisa el permiso del navegador.'; return; }
+  recorder.ondataavailable = (e) => chunks.push(e.data);
+  recorder.onstop = () => {
+    stream.getTracks().forEach((t) => t.stop());
+    blob = new Blob(chunks, { type: recorder.mimeType });
+    $('rec').textContent = '⏺ Grabar otra vez';
+    $('play').disabled = $('save').disabled = false;
+    $('status').textContent = 'Escúchala. Si te gusta, guárdala.';
+  };
+  recorder.start();
+  $('rec').textContent = '⏹ Parar';
+  $('status').textContent = 'Grabando… di la frase y tu historia, luego toca Parar.';
+};
+$('play').onclick = () => { if (blob) new Audio(URL.createObjectURL(blob)).play(); };
+$('save').onclick = () => {
+  const f = F[i];
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${f.id}.${EXT}`;
+  a.click();
+  done[f.id] = true; saveDone();
+  $('rec').textContent = '⏺ Grabar';
+  i++;
+  show();
+};
+$('skip').onclick = () => { i = Math.min(F.length, i + 1); $('rec').textContent = '⏺ Grabar'; show(); };
+$('prev').onclick = () => { i = Math.max(0, i - 1); $('rec').textContent = '⏺ Grabar'; show(); };
+$('list').onclick = (e) => { const li = e.target.closest('li'); if (li) { i = +li.dataset.k; show(); scrollTo(0, 0); } };
+show();
+</script>
+</body>
+</html>

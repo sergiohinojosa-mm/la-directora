@@ -1,0 +1,6 @@
+# Solo se publica el juego. Notas internas y config local se quedan en la laptop.
+*.md
+!README.md
+qa/
+.claude/
+.DS_Store
