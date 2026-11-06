@@ -6,6 +6,8 @@ import { loc } from './sim.js';
 import { discover, applyLesson } from './lessons.js';
 
 const OCC_TARGET = { playa: 0.62, centro: 0.6, carretera: 0.5 };
+// Monthly profit that earns the third star.
+export const PROFIT_GOAL = { playa: 150_000, centro: 70_000, carretera: 30_000 };
 
 export const MANDATES = [
   { id: 'llenar', title: 'Llenar el hotel',
@@ -91,7 +93,7 @@ export function starsFor(s, m) {
   if (!mandate.met(s, m)) return 0;
   let n = 1;
   if (m.profit > 0) n++;
-  if (n === 2 && m.reputation >= 3.9 && m.morale >= 60) n++;
+  if (n === 2 && m.profit >= PROFIT_GOAL[s.locationId] && m.reputation >= 3.8) n++;
   return n;
 }
 

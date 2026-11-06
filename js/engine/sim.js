@@ -11,9 +11,9 @@ export const attrs = (s) => ATTRIBUTES.filter((a) => s.attributes.includes(a.id)
 export const totalRooms = (s) => loc(s).rooms.reduce((n, r) => n + r.count, 0);
 
 const WEEKDAY = {
-  playa: [0.8, 0.8, 0.85, 0.95, 1.25, 1.35, 0.9],
-  centro: [1.0, 1.0, 1.0, 1.0, 1.1, 1.15, 0.75],
-  carretera: [1.05, 1.05, 1.05, 1.0, 1.0, 0.95, 0.85],
+  playa: [0.62, 0.6, 0.66, 0.8, 1.35, 1.55, 0.85],
+  centro: [0.9, 1.0, 1.0, 0.9, 1.15, 1.35, 0.55],
+  carretera: [1.0, 1.05, 1.05, 1.0, 1.1, 0.9, 0.7],
 };
 const YEAR_DAYS = DAYS_PER_MONTH * 12;
 const SEASON_PEAK = 100;
@@ -229,7 +229,7 @@ export function simulateDay(s) {
   const rush = workload > 1 && !s.overtime ? -0.35 * Math.min(1, workload - 1) : 0;
   const ratingBonus = activeMods(s, day, 'ratingDay').reduce((n, m) => n + m.delta, 0);
   const value = clamp((1 - priceRatio) * 1.6, -0.9, 0.6);
-  const dayRating = clamp(3.5 + attrs(s).reduce((n, a) => n + a.rating, 0) + value + rush
+  const dayRating = clamp(3.25 + attrs(s).reduce((n, a) => n + a.rating, 0) + value + rush
     + (s.morale - 60) / 120 + ratingBonus - expectationPenalty(s) - s.ratingPenalty, 1, 5);
   const goodReviews = soldTotal * 0.35;
   const badReviews = lostDirty * 0.5;

@@ -6,7 +6,7 @@ import { resolveEvent, playDay, finishEvening, advanceAfterDay, nextDay, hire, f
 import { EVENT_BY_ID } from '../data/events.js';
 import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER } from '../data/world.js';
 import { rank } from '../data/badges.js';
-import { mandateFor } from '../engine/board.js';
+import { mandateFor, PROFIT_GOAL } from '../engine/board.js';
 import { saveGame } from '../store.js';
 import { app, mount, sfx, botones, toast, modal, confetti } from './core.js';
 import { hotelSvg, animateDay } from './hotel.js';
@@ -97,7 +97,7 @@ export function showMandate(s) {
     h('div', { class: 'from' }, `Mandato del Consejo · Mes ${calendar(s.day).month}`),
     h('div', { class: 'quote' }, m.title),
     h('p', { class: 'meaning' }, m.text(s)),
-    h('p', { class: 'muted', style: { fontSize: '14px' } }, '⭐ Cumplir el mandato · ⭐⭐ y además ganar dinero · ⭐⭐⭐ y además reseñas de 3.9★ o más con el equipo contento'),
+    h('p', { class: 'muted', style: { fontSize: '14px' } }, `⭐ Cumplir el mandato · ⭐⭐ y además ganar dinero · ⭐⭐⭐ y además ganar ${money(PROFIT_GOAL[s.locationId])} o más con reseñas de 3.8★`),
     h('button', { class: 'btn btn-primary btn-block', onclick: () => close() }, 'Entendido')), { dismissable: true });
 }
 

@@ -1,3 +1,37 @@
 // Lesson ids that have a recorded file in this folder (audio/<id>.m4a).
-// When the family sends new recordings, drop the files here and add their ids to this list.
-export const RECORDED = [];
+// Right now these are synthetic placeholder voices; replace each file with the family's recording
+// (same name) from grabar.html and keep the id in this list.
+export const RECORDED = [
+  'location',
+  'conoce_cliente',
+  'ejecucion',
+  'cuarto_vacio',
+  'numeros_historia',
+  'palabra',
+  'cash_king',
+  'equipo',
+  'practica',
+  'revenue_vanity',
+  'duena',
+  'malas_noticias',
+  'errores_datos',
+  'celebra',
+  'cliente_regresa',
+  'rodeate',
+  'escucha_equipo',
+  'largo_plazo',
+  'medir',
+  'decir_si',
+  'cliente_respeto',
+  'reputacion',
+  'cross_sell',
+  'negocia',
+  'barato_caro',
+  'urgente',
+  'guarda',
+  'integridad',
+  'confia_verifica',
+  'diferencia',
+  'decide_info',
+  'delegar',
+];

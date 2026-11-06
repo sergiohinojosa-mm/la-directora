@@ -17,7 +17,7 @@ export const LOCATIONS = [
     price: 18_000_000,
     fixedMonthly: 520_000,
     varPerNight: 900,
-    baseOcc: 0.63,
+    baseOcc: 0.68,
     seasonAmp: 0.35,
     elasticity: 2.6,
     mix: { lujo: 0.6, familias: 0.3, trabajo: 0.05, paso: 0.05 },
