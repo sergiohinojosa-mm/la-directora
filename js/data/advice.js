@@ -43,7 +43,7 @@ export const ADVICE = {
   amenaza_resena: { best: 0, why: 'Si el problema es real, compensa lo justo. No pagues de más por una amenaza: enseñas que amenazar funciona.' },
   rompio_tv: { best: 0, why: 'Tener registros (el reporte de entrega) te deja cobrar con respeto y sin discutir.' },
   grita_recamarista: { best: 0, why: 'Tu equipo necesita saber que lo defiendes. Un cliente que grita no tiene la razón por gritar.' },
-  cancela_enfermo: { best: 0, why: 'Cumple tu política y busca una salida que ayude: cambiar la fecha cuida tu dinero y al cliente.' },
+  cancela_enfermo: { best: 0, why: 'Cumple tu política y busca una salida que ayude: guardarles el dinero para otra fecha cuida tu caja y al cliente.' },
 
   // Capítulo 5
   chef_aumento: { best: 0, why: 'Un buen trato hace que a los dos les convenga lo mismo: un bono por resultados alinea a la chef con el restaurante.' },
@@ -65,7 +65,7 @@ export const ADVICE = {
   guerra_global: { best: 0, why: 'Si solo compites con precio, siempre habrá alguien más barato. Defiende lo que te hace distinta.' },
   roban_personal: { best: 0, why: 'A la gente buena le importa crecer, no solo el sueldo. Darle un camino suele retenerla mejor que igualar una oferta.' },
   oferta_compra: { best: 0, why: 'Un hotel con clientes y buena reputación vale más de lo que costó. No vendas barato lo que construiste.' },
-  festival_incierto: { best: 0, why: 'Cuando no sabes qué va a pasar, prepárate a medias: si pasa, ganas; si no, no pierdes mucho.' },
+  festival_incierto: { best: 0, why: 'Cuando no sabes qué va a pasar, no apuestes todo antes de tiempo: espera a tener mejor información y decide entonces.' },
 
   // Capítulo 8
   rodrigo_recorte: { best: 0, why: 'Con números se convence mejor que con un "no". Muestra cuánto cuesta que la gente se vaya.' },
@@ -82,7 +82,7 @@ export const ADVICE = {
   menu_del_dia: { best: 0, why: 'Si el restaurante está tranquilo, atraer gente de fuera aprovecha a la chef que ya estás pagando.' },
   cumple: { best: null, why: 'Las dos primeras son buenas: un detalle barato crea fans y reseñas, y venderlo es venta cruzada. Lo importante es aprovechar el momento.' },
   checkin_temprano: { best: (s) => (busy(s) ? 2 : 1), why: 'Si el día está lleno, no compliques la limpieza: guarda las maletas y ofrece algo mientras esperan. Si hay cuartos listos, cobrar la entrada temprana es ingreso extra.' },
-  mascota: { best: 1, why: 'Tus reglas existen por algo. Explicarlas con amabilidad y ayudar con otra opción cuida tu política y al cliente.' },
+  mascota: { best: 1, why: 'Tus reglas existen por algo: otros huéspedes pueden ser alérgicos. Explicarlas con amabilidad y ayudar con otra opción cuida tu política y al cliente.' },
   grupo_ultimo: { best: (s) => (busy(s) ? 1 : 0), why: 'Si hoy te ibas a llenar de todos modos, no des descuento. Si es un día flojo, 3 cuartos seguros valen el descuento.' },
   objeto_olvidado: { best: 0, why: 'Un gesto pequeño en el momento justo convierte a un cliente en fan.' },
 };

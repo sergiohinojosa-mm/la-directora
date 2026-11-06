@@ -40,7 +40,12 @@ export const BADGES = [
   { id: 'reglas', icon: '📜', name: 'Mis reglas', desc: 'Escribiste tus políticas de servicio.', on: 'act', check: (s) => s.policy?.set },
   { id: 'resolutiva', icon: '🔑', name: 'Recepción resolutiva', desc: 'Tu recepción resolvió 15 quejas en el momento.', on: 'day', check: (s) => s.history.reduce((a, r) => a + (r.resolved || 0), 0) >= 15 },
   { id: 'chef', icon: '👩‍🍳', name: 'Buen provecho', desc: 'Abriste tu restaurante.', on: 'project', check: (s) => s.rest?.open },
-  { id: 'cero_desperdicio', icon: '🥗', name: 'Cero desperdicio', desc: 'Una semana de restaurante con muy poca comida tirada y nadie sin comer.', on: 'week', check: (s, w) => w.restRevenue > 0 && w.restWaste <= w.restFood * 0.08 && s.history.slice(-7).every((r) => !r.rest || r.rest.turnedAway === 0) },
+  { id: 'cero_desperdicio', icon: '🥗', name: 'Comida justa', desc: 'Una semana de restaurante con poca comida tirada y casi nadie sin comer.', on: 'week', check: (s, w) => {
+    const d = s.history.slice(-7).filter((r) => r.rest);
+    const served = d.reduce((a, r) => a + r.rest.served, 0);
+    const away = d.reduce((a, r) => a + r.rest.turnedAway, 0);
+    return d.length >= 5 && w.restWaste <= w.restFood * 0.1 && away <= served * 0.08;
+  } },
   { id: 'vendedora', icon: '🎁', name: 'Vendedora estrella', desc: 'Juntaste $20,000 en ventas cruzadas.', on: 'day', check: (s) => s.history.reduce((a, r) => a + (r.cross?.revenue || 0), 0) >= 20000 },
   { id: 'en_forma', icon: '🛠️', name: 'Hotel impecable', desc: 'El estado del hotel llegó a 90/100.', on: 'day', check: (s) => (s.maint?.condition ?? 0) >= 90 },
   { id: 'integra', icon: '💎', name: 'Íntegra', desc: 'Dijiste que no a un atajo deshonesto.', on: 'event', check: (s) => ['mordida', 'resenas_falsas'].includes(s.event?.id) && s.event.chosen === 0 },

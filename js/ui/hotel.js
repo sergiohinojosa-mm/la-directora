@@ -226,6 +226,17 @@ function business(s, { bx, bw, by, ly, groundY, night }) {
   if (s.attributes?.includes('spa') && s.plan?.project === 'spa' && s.plan.status === 'done') {
     out += `<g transform="translate(${bx + 20} ${ly - 4})"><rect width="58" height="20" rx="10" fill="#7ED6A8"/><text x="29" y="14" text-anchor="middle" font-size="10" font-weight="800" fill="#18203B" font-family="Plus Jakarta Sans, sans-serif">🧖 SPA</text></g>`;
   }
+  // Her decisions, visible: social media buzz, a worn-out facade, her unique experience.
+  if (chapterFor(s) >= 3 && s.mkt?.social > 0) {
+    out += `<g transform="translate(${bx + 168} ${ly + 4})"><g class="buzz"><rect width="62" height="22" rx="11" fill="#fff" stroke="#FF8FB1" stroke-width="2"/><path d="M14 22 l-4 7 l9 -7z" fill="#fff"/><text x="31" y="15.5" text-anchor="middle" font-size="11" font-weight="800" fill="#E2513E" font-family="Plus Jakarta Sans, sans-serif">📱 ❤ ${s.mkt.social === 2 ? '2.4k' : '860'}</text></g></g>`;
+  }
+  if (chapterFor(s) >= 6 && s.maint?.condition != null && s.maint.condition < 60) {
+    out += `<g stroke="#8A6A50" stroke-width="2" fill="none" opacity=".75"><path d="M${bx + 8} ${by + 60} l8 10 l-6 8 l9 12"/><path d="M${bx + bw - 10} ${by + 140} l-7 9 l5 7 l-8 10"/><path d="M${bx + bw / 2} ${ly - 4} l6 8 l-5 6"/></g><text x="${bx + bw - 30}" y="${groundY + 4}" font-size="22">🚧</text>`;
+  }
+  if (s.comp?.unique) {
+    const icon = { fogata: '🔥', snorkel: '🐠', cena: '🌅', tour: '🌮', museo: '🏛️', cafe: '☕', trailero: '🍳', taller: '🔧', estrellas: '🔭' }[s.comp.unique] || '🦄';
+    out += `<g transform="translate(${bx + bw / 2 - 16} ${groundY + 8})"><rect width="44" height="30" rx="10" fill="#fff" opacity=".92"/><text x="22" y="21" text-anchor="middle" font-size="18">${icon}</text></g>`;
+  }
   if (s.comp?.open && chapterFor(s) >= 7) {
     out += `<g transform="translate(${bx + bw + 40} ${groundY - 250})" opacity=".95"><rect width="96" height="250" rx="6" fill="${night ? '#22305A' : '#9FB3C8'}"/><rect x="8" y="10" width="80" height="22" rx="4" fill="#1F6FEB"/><text x="48" y="25" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Plus Jakarta Sans, sans-serif">GlobalStay</text>${Array.from({ length: 6 }, (_, r) => [0, 1, 2].map((c) => `<rect x="${10 + c * 27}" y="${42 + r * 32}" width="20" height="20" rx="3" fill="${night ? ((r + c) % 2 ? '#FFE28A' : '#33426E') : '#DCE8F5'}"/>`).join('')).join('')}</g>`;
   }

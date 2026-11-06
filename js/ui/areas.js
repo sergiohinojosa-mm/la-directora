@@ -37,9 +37,30 @@ const card = (kicker, ...kids) => h('div', { class: 'card stack' }, h('span', { 
 const fact = (label, value, cls = '') => h('div', { class: 'ln' }, h('span', null, label), h('b', { class: cls }, value));
 const last7 = (s) => s.history.slice(-7);
 
+// A banner on top of each area: what she decides here and its key number.
+function hero(s, id) {
+  const d = last7(s);
+  const sum = (f) => d.reduce((a, r) => a + (f(r) || 0), 0);
+  const info = {
+    equipo: ['👥', 'Equipo', 'Cuánto pagas, cuánto capacitas y si alguien se va.', `Ánimo ${Math.round(s.morale)}/100`, s.morale >= 60],
+    ventas: ['📣', 'Ventas', 'Dónde te anuncias y cuánto te cuesta cada huésped.', `Publicidad y comisiones: ${money(sum((r) => r.costs.marketing + r.costs.commission))} en 7 días`, true],
+    servicio: ['🛎️', 'Servicio', 'Tus reglas y qué puede resolver recepción.', `Quejas sin resolver: ${sum((r) => r.complaints - r.resolved)} en 7 días`, sum((r) => r.complaints - r.resolved) <= 2],
+    restaurante: ['🍽️', 'Restaurante', 'Comida y extras para tus huéspedes.', s.rest.open ? `Le quedó ${money(sum((r) => r.rest ? r.rest.revenue - r.rest.food - r.rest.staff : 0))} en 7 días` : 'Todavía cerrado', !s.rest.open || sum((r) => r.rest ? r.rest.revenue - r.rest.food - r.rest.staff : 0) >= 0],
+    hotel: ['🔧', 'Hotel', 'Mantenimiento, seguro, impuestos y la caja.', `Estado ${Math.round(s.maint.condition ?? 100)}/100`, (s.maint.condition ?? 100) >= 70],
+    competencia: ['🆚', 'Competencia', 'GlobalStay, tus precios y lo que te hace única.', `GlobalStay te quita ${pct(compSteal(s))} de clientes`, compSteal(s) < 0.06],
+    plan: ['💼', 'Gran apuesta', 'El proyecto que presentarás al Consejo.', s.plan.status === 'done' ? 'Terminada ✅' : s.plan.status === 'building' ? 'En obra 🏗️' : s.plan.project ? 'En preparación' : 'Sin elegir', true],
+  }[id];
+  if (!info) return null;
+  const [icon, name, what, kpi, ok] = info;
+  return h('div', { class: `area-hero a-${id}` },
+    h('span', { class: 'ah-icon', 'aria-hidden': 'true' }, icon),
+    h('div', null, h('b', null, name), h('small', null, what)),
+    h('span', { class: `ah-kpi ${ok ? 'ok' : 'warn'}` }, kpi));
+}
+
 export function areaPanel(s, id, redraw, save) {
   const run = (what, v) => { act(s, what, v); save(); redraw(); };
-  return {
+  return [hero(s, id), {
     equipo: () => equipo(s, run, redraw, save),
     ventas: () => ventas(s, run),
     servicio: () => servicio(s, run),
@@ -47,7 +68,7 @@ export function areaPanel(s, id, redraw, save) {
     hotel: () => hotelArea(s, run),
     competencia: () => competencia(s, run),
     plan: () => plan(s, run),
-  }[id]();
+  }[id]()];
 }
 
 // ---------------- Equipo ----------------
@@ -58,9 +79,9 @@ function equipo(s, run, redraw, save) {
   return [
     card('Sueldos',
       h('p', { class: 'muted' }, 'Pagar más cuesta cada día, pero el equipo está más contento y casi nadie renuncia.'),
-      seg(WAGES.map((x) => ({ value: x.v, label: x.name, sub: `${money(480 * x.v)}/día` })), s.team.wage, (v) => run('wage', v)),
+      seg(WAGES.map((x) => ({ value: x.v, label: x.name, sub: `${money(480 * x.v)}/día por persona` })), s.team.wage, (v) => run('wage', v)),
       h('div', { class: 'pl' },
-        fact('Ánimo al que tiende el equipo', `${w.morale}/100`),
+        fact('Ánimo normal con este sueldo', `${w.morale}/100`),
         fact('Riesgo de que alguien renuncie hoy', risk > 0.05 ? 'Alto 🔴' : risk > 0.015 ? 'Medio 🟡' : 'Bajo 🟢'),
         fact('Renuncias en los últimos 28 días', String(quits), quits ? 'neg' : ''))),
     card('Capacitación',
@@ -224,9 +245,9 @@ function competencia(s, run) {
         const roomRev = d.reduce((a, r) => a + (r.roomRevenue ?? r.revenue), 0);
         const avail = d.reduce((a, r) => a + r.rooms, 0);
         return h('div', { class: 'pl' },
-          fact('ADR: precio promedio por cuarto vendido', sold ? money(roomRev / sold) : '—'),
-          fact('RevPAR: ingreso por cuarto disponible', avail ? money(roomRev / avail) : '—'),
-          h('small', { class: 'muted' }, 'RevPAR = ADR × ocupación. Sube si vendes más caro o si llenas más.'));
+          fact('ADR: lo que cobras en promedio por cuarto vendido', sold ? money(roomRev / sold) : '—'),
+          fact('RevPAR: lo que gana cada cuarto, lleno o vacío', avail ? money(roomRev / avail) : '—'),
+          h('small', { class: 'muted' }, 'RevPAR = precio promedio × % de cuartos llenos. Sube si cobras más o si llenas más.'));
       })()),
   ];
 }
@@ -253,13 +274,13 @@ function plan(s, run) {
       h('button', { class: `option ${s.plan.funding === 'caja' ? 'sel' : ''}`, onclick: () => run('funding', 'caja') },
         h('b', null, '💰 Con la caja del hotel'), h('small', { class: 'muted' }, `Tienes ${money(s.cash)}. No debes nada, pero la caja se vacía.`)),
       h('button', { class: `option ${s.plan.funding === 'banco' ? 'sel' : ''}`, onclick: () => run('funding', 'banco') },
-        h('b', null, `🏦 Préstamo del banco (${pct(s.plan.negotiated ? BANK_RATE_NEGOTIATED : BANK_RATE)} anual, ${BANK_MONTHS} meses)`),
-        h('small', { class: 'muted' }, `Pagarías ${money(newLoanPayment(s, PROJECTS[s.plan.project].cost(s)))} más al mes.`)),
+        h('b', null, `🏦 Préstamo del banco (${((s.plan.negotiated ? BANK_RATE_NEGOTIATED : BANK_RATE) * 100).toFixed(1).replace('.0', '')}% de interés al año, ${BANK_MONTHS} meses)`),
+        h('small', { class: 'muted' }, `El interés es lo que el banco te cobra por prestarte. Pagarías ${money(newLoanPayment(s, PROJECTS[s.plan.project].cost(s)))} más al mes.`)),
       s.plan.funding === 'banco' && !s.plan.negotiated ? h('button', { class: 'btn btn-secondary btn-block', onclick: () => {
         if (goodPayer(s)) { run('negotiate', true); sfx('good'); toast('El banco aceptó: como siempre pagaste a tiempo, te bajó la tasa.', 3800); } else { sfx('bad'); toast('El banco dice que primero quiere ver 3 mensualidades pagadas a tiempo.', 3800); }
-      } }, '🤝 Negociar la tasa con el banco') : null,
+      } }, '🤝 Pedirle al banco que te cobre menos interés') : null,
       h('button', { class: `option ${s.plan.funding === 'socio' ? 'sel' : ''}`, onclick: () => run('funding', 'socio') },
-        h('b', null, '🤵 Don Rodrigo como socio'), h('small', { class: 'muted' }, `Él pone todo el dinero, pero se lleva ${pct(SOCIO_SHARE)} de la ganancia de cada mes, para siempre.`))) : null,
+        h('b', null, '🤵 Don Rodrigo como socio (pone el dinero)'), h('small', { class: 'muted' }, `Él pone todo el dinero, pero se lleva ${pct(SOCIO_SHARE)} de la ganancia de cada mes, para siempre.`))) : null,
     votes ? card('3 · Lo que revisará cada consejero',
       [['alma', 'Abuela Alma', votes.alma], ['marcela', 'Mamá Marcela', votes.marcela], ['rodrigo', 'Don Rodrigo', votes.rodrigo]].map(([, n, v]) => h('div', { class: `vote ${v.yes ? 'yes' : 'no'}` }, h('b', null, `${v.yes ? '👍' : '👎'} ${n}`), h('small', null, v.why))),
       h('div', { class: 'vote' }, h('b', null, '❓ Papá'), h('small', null, 'Te va a preguntar en cuántos meses se recupera la inversión. Haz la cuenta: costo ÷ ganancia del mes.')),

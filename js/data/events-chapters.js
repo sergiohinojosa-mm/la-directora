@@ -17,8 +17,8 @@ export const CHAPTER_EVENTS = [
   // ---------------- Capítulo 2 · Mi equipo ----------------
   {
     id: 'renuncia', ch: 2, kind: 'equipo', forced: true, negative: true, icon: '🚪',
-    lesson: 'retener', lessonCtx: (s) => `${s.flags.quitName} renunció con el ánimo del equipo en ${Math.round(s.morale)}. Reemplazarla cuesta ${money(recruitCost(s))} y una semana de aprendizaje.`,
-    title: (s) => `${s.flags.quitName} renunció`,
+    lesson: 'retener', lessonCtx: (s) => `${s.flags.quitName || 'Una recamarista'} renunció con el ánimo del equipo en ${Math.round(s.morale)}. Reemplazarla cuesta ${money(recruitCost(s))} y una semana de aprendizaje.`,
+    title: (s) => `${s.flags.quitName || 'Una recamarista'} renunció`,
     text: (s) => `Dice que estaba agotada${s.team.wage < 1 ? ' y que en otro hotel pagan más' : ''}. Hoy ya no viene. Tu equipo de limpieza queda en ${s.housekeepers}.`,
     options: [
       { label: (s) => `Buscar reemplazo (${money(recruitCost(s))})`, fx: [['Caja −', 'dn'], ['Aprende 5 días', 'q']],
@@ -76,7 +76,7 @@ export const CHAPTER_EVENTS = [
       { label: 'Contratarla (sin costo de búsqueda)', fx: [['Más limpieza', 'up'], ['Sueldo diario +', 'dn']],
         apply: (s) => { s.housekeepers += 1; s.hires = [...(s.hires || []), s.day - 3]; s.hiredEver += 1; return 'Llegó con experiencia: aprende rápido.'; } },
       { label: 'Entrevistarla como a cualquiera', fx: [['Justo', 'up']],
-        apply: (s) => 'La entrevistaste. Si necesitas a alguien, contrátala desde la pestaña Equipo.' },
+        apply: (s) => 'La entrevistaste. Si necesitas a alguien, contrátala en la pestaña Hoy (paso 3).' },
       { label: 'Ahora no necesito a nadie', fx: [['Sin cambio', 'q']],
         apply: () => 'Doña Chela lo entendió.' },
     ],
@@ -113,7 +113,7 @@ export const CHAPTER_EVENTS = [
     text: 'Una huésped subió un video de Botones durmiendo en recepción. ¡Tiene miles de vistas!',
     options: [
       { label: 'Aprovecharlo con una promoción en redes', fx: [['Caja −', 'dn'], ['Demanda ++', 'up']],
-        apply: (s) => { s.cash -= k(s, 0.05); add(s, { type: 'demand', mult: s.mkt.social ? 1.2 : 1.14, from: s.day, to: s.day + 6, label: 'Video viral de Botones' }); return s.mkt.social ? 'Como ya tenías redes activas, el video llegó a mucha más gente.' : 'Funcionó, aunque sin redes activas llegó a menos gente.'; } },
+        apply: (s) => { s.cash -= k(s, 0.05); add(s, { type: 'demand', mult: s.mkt.social ? 1.2 : 1.06, from: s.day, to: s.day + 6, label: 'Video viral de Botones' }); return s.mkt.social ? 'Como ya tenías redes activas, el video llegó a mucha más gente.' : 'Sin redes activas, la promoción casi no llegó a nadie nuevo: gastaste de más.'; } },
       { label: 'Solo agradecerle a la huésped', fx: [['Demanda +', 'up']],
         apply: (s) => { add(s, { type: 'demand', mult: 1.06, from: s.day, to: s.day + 4, label: 'Video viral de Botones' }); return 'El video ayudó un poco por sí solo.'; } },
     ],
@@ -130,7 +130,7 @@ export const CHAPTER_EVENTS = [
           for (let d = s.day; d < s.day + 28; d++) if ((d - 1) % 7 === 1 || (d - 1) % 7 === 2) for (let i = 0; i < n; i++) s.contracts.push({ type: std, from: d, to: d, priceMult: 0.8, label: 'Convenio empresa' });
           return 'Tienes cuartos vendidos los martes y miércoles de este mes.';
         } },
-      { label: 'Contraoferta: 10% de descuento', fx: [['Puede que acepten', 'q']],
+      { label: 'Pedir un mejor trato: 10% de descuento', fx: [['Puede que acepten', 'q']],
         apply: (s) => {
           if ((s.day * 7) % 3 === 0) return 'Dijeron que no. Se fueron con GlobalStay.';
           const n = Math.max(2, Math.round(s.housekeepers * 2));
@@ -221,7 +221,7 @@ export const CHAPTER_EVENTS = [
     title: 'Un huésped le grita a una recamarista',
     text: (s) => `${name(s, 1)} está llorando. El huésped dice que tardó mucho en limpiar su cuarto.`,
     options: [
-      { label: 'Defender a tu equipo y pedirle respeto al huésped', wise: true, wiseCtx: 'Defendiste a tu equipo y pediste respeto con firmeza y educación.', fx: [['Ánimo ++', 'up'], ['Puede irse', 'q']],
+      { label: 'Defender a tu equipo y pedirle respeto al huésped', wise: true, wiseCtx: 'Defendiste a tu equipo y pediste respeto con firmeza y educación.', fx: [['Ánimo ++', 'up'], ['El huésped se molesta', 'q']],
         apply: (s) => { mood(s, 9); return 'El huésped se disculpó a regañadientes. Tu equipo vio que los cuidas.'; } },
       { label: 'Pedirle a ella que aguante', fx: [['Ánimo −−', 'dn']],
         apply: (s) => { mood(s, -10); return 'El huésped se calmó, pero tu equipo se sintió solo.'; } },
@@ -230,15 +230,15 @@ export const CHAPTER_EVENTS = [
     ],
   },
   {
-    id: 'cancela_enfermo', ch: 4, kind: 'crisis', icon: '🤒',
+    id: 'cancela_enfermo', ch: 4, kind: 'crisis', icon: '🤒', when: (s) => s.policy.cancel !== 'flexible',
     title: 'Una familia cancela porque el niño se enfermó',
-    text: (s) => `Tu política es ${s.policy.cancel}. Te piden que les regreses todo su dinero.`,
+    text: (s) => `Tu política de cancelación es ${s.policy.cancel}: ${s.policy.cancel === 'estricta' ? 'no se regresa el dinero' : 'se regresa la mitad'}. Te piden que les regreses todo.`,
     options: [
       { label: 'Seguir la política, pero ofrecer cambiar la fecha', fx: [['Justo', 'up'], ['Reseñas +', 'up']],
         apply: (s) => { rep(s, 0.03); return 'Les guardaste el dinero para otra fecha. Regresarán.'; } },
       { label: 'Regresarles todo', fx: [['Caja −', 'dn'], ['Reseñas +', 'up']],
         apply: (s) => { s.cash -= priceStd(s) * 2; rep(s, 0.02); return 'Agradecidos. Pero las reglas valen menos si cambian cada vez.'; } },
-      { label: 'Cobrar todo sin excepción', fx: [['Caja +', 'up'], ['Reseña mala', 'dn']],
+      { label: 'No regresar nada', fx: [['Te quedas el dinero', 'up'], ['Reseña mala', 'dn']],
         apply: (s) => { rep(s, -0.05); return 'Cobraste, y escribieron que "no tienen corazón".'; } },
     ],
   },
@@ -249,7 +249,7 @@ export const CHAPTER_EVENTS = [
     title: 'La chef Mariana pide 25% más',
     text: 'Dice que otro restaurante le ofreció más. Su comida es la razón de que vengan de fuera.',
     options: [
-      { label: 'Negociar: un poco más de sueldo y un bono si el restaurante gana', wise: true, wiseCtx: 'Negociaste con la chef un trato donde las dos ganan.', fx: [['Costo +', 'dn'], ['Se queda motivada', 'up']],
+      { label: 'Algo más de sueldo + bono si el restaurante gana', wise: true, wiseCtx: 'Negociaste con la chef un trato donde las dos ganan.', fx: [['Costo +', 'dn'], ['Se queda motivada', 'up']],
         apply: (s) => { add(s, { type: 'dailyCost', amount: k(s, 0.004), to: s.day + 365, label: 'Bono de la chef' }); return 'Aceptó. Ahora a ella también le conviene que el restaurante gane.'; } },
       { label: 'Pagarle el 25%', fx: [['Costo ++', 'dn']],
         apply: (s) => { add(s, { type: 'dailyCost', amount: k(s, 0.012), to: s.day + 365, label: 'Aumento de la chef' }); return 'Se queda, pero el restaurante ahora cuesta más.'; } },
@@ -262,9 +262,9 @@ export const CHAPTER_EVENTS = [
     title: 'Un proveedor ofrece 12% de descuento',
     text: 'Pero solo si le compras el doble de ingredientes cada semana por un año.',
     options: [
-      { label: 'Contraoferta: 6% de descuento comprando lo mismo, firmando un año', wise: true, wiseCtx: 'Negociaste un descuento sin comprar comida que se iba a tirar.', fx: [['Costo −', 'up']],
+      { label: 'Pedir 6% de descuento comprando lo mismo', wise: true, wiseCtx: 'Negociaste un descuento sin comprar comida que se iba a tirar.', fx: [['Costo −', 'up']],
         apply: (s) => { add(s, { type: 'dailyCost', amount: -k(s, 0.003), to: s.day + 365, label: 'Descuento del proveedor' }); return 'Aceptó: le conviene tener un cliente fijo.'; } },
-      { label: 'Aceptar y comprar el doble', fx: [['Precio −', 'up'], ['Desperdicio ++', 'dn']],
+      { label: 'Aceptar y comprar el doble', fx: [['Ingredientes más baratos', 'up'], ['Desperdicio ++', 'dn']],
         apply: (s) => { add(s, { type: 'dailyCost', amount: k(s, 0.006), to: s.day + 365, label: 'Comida de más del proveedor' }); return 'La mitad de lo que compras se echa a perder.'; } },
       { label: 'Seguir igual', fx: [['Sin cambio', 'q']], apply: () => 'Sin cambio.' },
     ],
@@ -283,9 +283,9 @@ export const CHAPTER_EVENTS = [
   {
     id: 'boda', ch: 5, kind: 'oportunidad', icon: '💒',
     title: 'Quieren hacer una boda en tu hotel',
-    text: (s) => `Rentarían todo el hotel el próximo sábado y la comida para 80 invitados. Pagan ${money(k(s, 1.6))}.`,
+    text: (s) => `Rentarían todo el hotel el próximo sábado con comida para 80 invitados. Pagan ${money(k(s, 1.6))}, pero la comida y el personal extra cuestan ${money(k(s, 1.05))} y ese sábado no vendes cuartos.`,
     options: [
-      { label: 'Aceptar', fx: [['Ingreso ++', 'up'], ['Mucho trabajo', 'dn']],
+      { label: 'Aceptar', fx: [['Ingreso +', 'up'], ['Sin cuartos ese sábado', 'dn'], ['Mucho trabajo', 'dn']],
         apply: (s) => { const sat = s.day + ((5 - ((s.day - 1) % 7) + 7) % 7 || 7); add(s, { type: 'dailyCost', amount: -k(s, 1.6) + k(s, 0.7) + k(s, 0.35), from: sat, to: sat, label: 'Boda (ingreso menos comida)' }); add(s, { type: 'demand', mult: 0.01, from: sat, to: sat, label: 'Hotel rentado para la boda' }); mood(s, -4); return 'El sábado el hotel es de la boda. Prepara a tu equipo.'; } },
       { label: 'No, prefiero mis huéspedes normales', fx: [['Sin cambio', 'q']], apply: () => 'Les recomendaste un salón de eventos.' },
     ],
@@ -296,7 +296,7 @@ export const CHAPTER_EVENTS = [
     text: (s) => `Si no se arregla hoy, se echa a perder la comida. La reparación cuesta ${money(k(s, 0.06))}.`,
     options: [
       { label: 'Repararlo hoy', fx: [['Caja −', 'dn']], apply: (s) => { s.cash -= k(s, 0.06); return 'Listo, la comida se salvó.'; } },
-      { label: 'Esperar al técnico barato mañana', fx: [['Caja =', 'q'], ['Comida perdida', 'dn']],
+      { label: 'Esperar al técnico barato mañana', fx: [['Sale más caro', 'dn'], ['Comida perdida', 'dn']],
         apply: (s) => { s.cash -= k(s, 0.1); add(s, { type: 'restDown', to: s.day + 1, label: 'Sin refrigerador' }); return 'Se echó a perder comida y el restaurante atendió menos. Salió más caro.'; } },
     ],
   },
@@ -342,7 +342,7 @@ export const CHAPTER_EVENTS = [
   {
     id: 'mordida', once: true, ch: 6, kind: 'gobierno', icon: '🤫', negative: true, lesson: 'integridad', lessonCtx: 'Un inspector te ofreció "arreglarlo por fuera" en lugar de pagar la multa.',
     title: 'Un inspector ofrece "arreglarlo por fuera"',
-    text: (s) => `Dice que la multa oficial es de ${money(k(s, 0.3))}, pero que con ${money(k(s, 0.08))} "en efectivo" se olvida del asunto.`,
+    text: (s) => `Dice que la multa oficial es de ${money(k(s, 0.3))}, pero que con ${money(k(s, 0.08))} "en efectivo" se olvida del asunto. Eso es un soborno: es ilegal.`,
     options: [
       { label: 'Pagar la multa oficial y corregir', wise: true, wiseCtx: 'Pagaste lo oficial en lugar de aceptar un atajo.', fx: [['Caja −−', 'dn'], ['Conciencia tranquila', 'up']],
         apply: (s) => { s.cash -= k(s, 0.3); conf(s, 4); return 'Pagaste lo que tocaba. El Consejo se enteró y está orgulloso.'; } },
@@ -380,8 +380,8 @@ export const CHAPTER_EVENTS = [
     text: 'Alma revisó los números de años anteriores: en unos meses llegan menos turistas. ¿Cómo te preparas?',
     options: [
       { label: 'Apartar dinero cada semana desde ahora', wise: true, fx: [['Caja protegida', 'up']],
-        apply: () => 'Buena idea. Cuida que tu caja crezca estos meses.' },
-      { label: 'Ya veré cuando llegue', fx: [['Riesgo', 'q']], apply: () => 'Alma frunció el ceño.' },
+        apply: () => 'Buena idea: apaga gastos que no necesitas (como publicidad de más) y procura que tu caja crezca estos meses.' },
+      { label: 'Ya veré cuando llegue', fx: [['Riesgo', 'q']], apply: () => 'Alma frunció el ceño: "Cuando llegue, ya será tarde para ahorrar".' },
     ],
   },
 
@@ -428,12 +428,12 @@ export const CHAPTER_EVENTS = [
     title: 'Quizá haya un festival el fin de semana',
     text: 'Dicen que viene un festival de música, pero el permiso no está confirmado. Puede llegar mucha gente… o nadie.',
     options: [
-      { label: 'Prepararse a medias: precio un poco más alto y horas extra listas', wise: true, wiseCtx: 'Decidiste con la información que tenías, sin apostar todo.', fx: [['Riesgo bajo', 'up']],
-        apply: (s) => { const yes = s.day % 2 === 0; const w = s.day + ((4 - ((s.day - 1) % 7) + 7) % 7 || 7); add(s, { type: 'demand', mult: yes ? 1.4 : 1, from: w, to: w + 2, label: yes ? 'Festival de música' : 'Festival cancelado' }); return 'Te preparaste sin apostar todo. Revisa el pronóstico el viernes.'; } },
+      { label: 'Esperar el pronóstico del jueves y decidir', wise: true, wiseCtx: 'Esperaste a tener mejor información, sin apostar todo antes de tiempo.', fx: [['Riesgo bajo', 'up']],
+        apply: (s) => { const yes = s.day % 2 === 0; const w = s.day + ((4 - ((s.day - 1) % 7) + 7) % 7 || 7); add(s, { type: 'demand', mult: yes ? 1.4 : 1, from: w, to: w + 2, label: yes ? 'Festival de música' : 'Festival cancelado' }); return 'Buena idea: el jueves el pronóstico mostrará si viene el festival. Entonces ajusta precios y limpieza.'; } },
       { label: 'Apostar todo: contratar dos personas más', fx: [['Costo ++', 'dn'], ['Si hay festival, ganas', 'q']],
         apply: (s) => { const yes = s.day % 2 === 0; const w = s.day + ((4 - ((s.day - 1) % 7) + 7) % 7 || 7); add(s, { type: 'demand', mult: yes ? 1.4 : 1, from: w, to: w + 2, label: yes ? 'Festival de música' : 'Festival cancelado' }); s.housekeepers += 2; s.hires = [...(s.hires || []), s.day, s.day]; s.hiredEver += 2; s.cash -= 2 * (s.team ? 2500 : 0); return 'Ya tienes más equipo. Ojalá se haga el festival.'; } },
-      { label: 'No hacer nada hasta saber', fx: [['Sin costo', 'up']],
-        apply: (s) => { const yes = s.day % 2 === 0; const w = s.day + ((4 - ((s.day - 1) % 7) + 7) % 7 || 7); add(s, { type: 'demand', mult: yes ? 1.4 : 1, from: w, to: w + 2, label: yes ? 'Festival de música' : 'Festival cancelado' }); return 'Esperarás. El pronóstico te dirá más cerca de la fecha.'; } },
+      { label: 'Bajar precios desde ya, por si no viene nadie', fx: [['Precio −10%', 'dn'], ['Si hay festival, pierdes', 'q']],
+        apply: (s) => { const yes = s.day % 2 === 0; const w = s.day + ((4 - ((s.day - 1) % 7) + 7) % 7 || 7); add(s, { type: 'demand', mult: yes ? 1.4 : 1, from: w, to: w + 2, label: yes ? 'Festival de música' : 'Festival cancelado' }); for (const id of Object.keys(s.prices)) s.prices[id] = Math.round(s.prices[id] * 0.9 / 50) * 50; return 'Bajaste tus precios 10%. Si el festival se hace, los vas a querer subir.'; } },
     ],
   },
 
@@ -458,9 +458,9 @@ export const CHAPTER_EVENTS = [
     options: [
       { label: 'Escuchar a las dos y prometer decidirlo con números en la junta', fx: [['Confianza +', 'up']],
         apply: (s) => { conf(s, 3); return 'Las dos aceptaron. En la junta del mes 12 decidirás cuánto repartir.'; } },
-      { label: 'Darle la razón a Alma', fx: [['Marcela −', 'dn']],
+      { label: 'Darle la razón a Alma', fx: [['Ánimo del equipo −', 'dn']],
         apply: (s) => { mood(s, -3); return 'Alma sonrió. Marcela te recordó que el equipo también rema.'; } },
-      { label: 'Darle la razón a Marcela', fx: [['Alma −', 'dn']],
+      { label: 'Darle la razón a Marcela', fx: [['Confianza del Consejo −', 'dn']],
         apply: (s) => { mood(s, 3); conf(s, -2); return 'Marcela sonrió. Alma te pidió ver los números antes de decidir.'; } },
     ],
   },

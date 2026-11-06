@@ -126,7 +126,7 @@ p { margin: 0; }
 
 /* ---------- Panel (right column) ---------- */
 .panel { display: grid; gap: 14px; min-width: 0; }
-.card { background: var(--paper); color: var(--ink); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow); min-width: 0; }
+.card { color-scheme: light; background: var(--paper); color: var(--ink); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow); min-width: 0; }
 .card h3 { font-size: 22px; margin-bottom: 4px; }
 .card .kicker { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--aqua); margin-bottom: 6px; display: block; }
 .card-dark { background: var(--night-2); color: #fff; border: 1px solid rgba(255,255,255,.08); }
@@ -275,7 +275,7 @@ details.more summary::-webkit-details-marker { display: none; }
 .modal { width: min(520px, 100%); max-height: calc(100vh - 40px); overflow: auto; animation: pop .28s cubic-bezier(.2, 1.4, .4, 1); }
 @keyframes fade { from { opacity: 0; } }
 @keyframes pop { from { transform: scale(.88) translateY(12px); opacity: 0; } }
-.msg-card { background: #fff; color: var(--ink); border-radius: 28px; padding: 24px; box-shadow: var(--shadow); text-align: center; display: grid; gap: 14px; justify-items: center; }
+.msg-card { color-scheme: light; background: #fff; color: var(--ink); border-radius: 28px; padding: 24px; box-shadow: var(--shadow); text-align: center; display: grid; gap: 14px; justify-items: center; }
 .msg-card .from { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
 .msg-card .quote { font-family: var(--f-display); font-size: clamp(24px, 4.6vw, 32px); font-weight: 800; line-height: 1.1; }
 .msg-card .meaning { color: var(--ink-2); font-size: 16px; max-width: 40ch; }
@@ -418,6 +418,21 @@ textarea.text-input { min-height: 96px; padding: 12px 16px; font-size: 16px; fon
 .birds { animation: birds 9s linear infinite; }
 @keyframes birds { from { transform: translateX(-120px); } to { transform: translateX(700px); } }
 
+/* ---------- Area banners ---------- */
+.area-hero { display: grid; grid-template-columns: 54px 1fr; gap: 4px 12px; align-items: center; padding: 14px 16px; border-radius: var(--r-lg); color: #fff; background: linear-gradient(135deg, var(--a1, #2B3A7A), var(--a2, #4B3A8A)); box-shadow: var(--shadow); }
+.area-hero .ah-icon { grid-row: span 2; width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 30px; background: rgba(255,255,255,.18); }
+.area-hero b { font-family: var(--f-display); font-size: 22px; display: block; }
+.area-hero small { color: rgba(255,255,255,.85); font-size: 13.5px; }
+.ah-kpi { grid-column: 2; justify-self: start; font-size: 13px; font-weight: 800; padding: 4px 10px; border-radius: 99px; background: rgba(255,255,255,.2); }
+.ah-kpi.warn { background: rgba(255,107,87,.9); }
+.a-equipo { --a1: #E2513E; --a2: #FF8F6B; }
+.a-ventas { --a1: #1B8FA0; --a2: #2EC4C9; }
+.a-servicio { --a1: #6C5CE7; --a2: #A78BFA; }
+.a-restaurante { --a1: #D98E04; --a2: #FFC24B; }
+.a-hotel { --a1: #2F6B4F; --a2: #4FD69C; }
+.a-competencia { --a1: #1F6FEB; --a2: #5FA8D3; }
+.a-plan { --a1: #8A3FFC; --a2: #FF8FB1; }
+
 /* ---------- Players ---------- */
 .players { max-width: 760px; text-align: center; display: grid; gap: 18px; justify-items: center; padding-top: max(28px, env(safe-area-inset-top)); }
 .players h2 { font-size: clamp(28px, 6vw, 40px); }
@@ -493,6 +508,7 @@ button.brand { text-align: left; padding: 0; color: #fff; }
 .title-hero { display: flex; align-items: center; gap: 18px; justify-content: center; flex-wrap: wrap; }
 .logo em { display: block; font-style: normal; color: var(--coral); font-size: .62em; letter-spacing: -.01em; margin-top: 4px; }
 .directora { animation: bob 3s ease-in-out infinite; }
+.buzz { animation: bob 2.2s ease-in-out infinite; }
 @keyframes bob { 50% { transform: translateY(-2px); } }
 
 /* ---------- Business areas ---------- */

@@ -184,7 +184,7 @@ export function renderBoard() {
       h('div', { class: 'card stack', style: { textAlign: 'center', justifyItems: 'center' } },
         h('span', { class: 'kicker' }, `Mandato: ${res.mandate.title}`),
         h('div', { class: 'star-row', 'aria-label': `${res.stars} de 3 estrellas` }, [1, 2, 3].map((n) => h('span', { class: n <= res.stars ? '' : 'off' }, '⭐'))),
-        h('h3', null, texts[res.verdict]),
+        h('h3', null, res.verdict === 'bonus' && m.profit < 0 ? 'Buen manejo de la temporada baja: perdiste poco y cuidaste la caja. El Consejo aprueba un bono de $10,000.' : texts[res.verdict]),
         res.notes.map((n) => h('div', { class: 'row', style: { textAlign: 'left' } }, avatar(n.by, 'sm'), h('p', null, h('b', null, BOARD[n.by].name + ': '), n.text))),
         h('p', { class: 'muted' }, `Respuestas correctas: ${res.correct} de ${res.total}`)),
       h('div', { class: 'card-dark card stack' },

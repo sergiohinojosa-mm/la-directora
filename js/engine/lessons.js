@@ -113,7 +113,7 @@ export function afterDay(s, r) {
     discover(s, 'cross_sell', `Hoy ${plural(n, 'huésped compró', 'huéspedes compraron')} algo extra: ${money(r.cross.revenue)} más sin traer a nadie nuevo.`);
   }
   // Chapter 7: overbooking and uncertain forecasts.
-  if (r.walked > 0) discover(s, 'sobreventa', `Sobrevendiste y llegaron todos: ${plural(r.walked, 'huésped se quedó', 'huéspedes se quedaron')} sin cuarto. Pagaste otro hotel y te dejaron una reseña mala.`);
+  if (r.walked > 0) discover(s, 'sobreventa', `Sobrevendiste y llegaron todos: ${plural(r.walked, 'huésped se quedó', 'huéspedes se quedaron')} sin cuarto. Tuviste que pagarles otro hotel y te dejaron una reseña mala.`);
   if (r.chapter >= 7 && r.forecastTotal > 2 && Math.abs(r.potential - r.forecastTotal) / r.forecastTotal > 0.08) {
     discover(s, 'decide_info', `El pronóstico decía unas ${Math.round(r.forecastTotal)} personas y buscaron ${Math.round(r.potential)}. Nadie sabe el futuro exacto.`);
   }
@@ -127,12 +127,13 @@ export function afterDay(s, r) {
 
 export function afterWeek(s, w, prev) {
   const days = s.history.slice(-7);
-  const best = days.reduce((a, b) => (b.profit > a.profit ? b : a));
-  const worst = days.reduce((a, b) => (b.profit < a.profit ? b : a));
-  discover(s, 'numeros_historia', `Tu mejor día fue el ${DAYS[best.dow].toLowerCase()} (${money(best.profit)}) y el peor el ${DAYS[worst.dow].toLowerCase()} (${money(worst.profit)}). ¿Por qué crees que fue así?`);
+  const op = (r) => r.profit + (r.costs.loan || 0) + (r.costs.isr || 0) + (r.costs.socio || 0);
+  const best = days.reduce((a, b) => (op(b) > op(a) ? b : a));
+  const worst = days.reduce((a, b) => (op(b) < op(a) ? b : a));
+  discover(s, 'numeros_historia', `Tu mejor día fue el ${DAYS[best.dow].toLowerCase()} (${money(op(best))}) y el peor el ${DAYS[worst.dow].toLowerCase()} (${money(op(worst))}). ¿Por qué crees que fue así?`);
   if (prev) {
     if (prev.profit < 0 && w.profit > prev.profit) {
-      const ctx = `La semana pasada ganaste ${money(prev.profit)} y esta ${money(w.profit)}. Mejoraste.`;
+      const ctx = `La semana pasada perdiste ${money(-prev.profit)} y esta ${w.profit >= 0 ? `ganaste ${money(w.profit)}` : `perdiste solo ${money(-w.profit)}`}. Mejoraste.`;
       if (!discover(s, 'practica', ctx)) applyLesson(s, 'practica', ctx);
     }
     if (w.revenue > prev.revenue && w.profit < prev.profit) {
@@ -148,7 +149,7 @@ export function afterWeek(s, w, prev) {
     const parts = Object.keys(names).filter((c) => cpb(c) != null).map((c) => `${names[c]} ${money(cpb(c))}`);
     if (parts.length) discover(s, 'medir', `Esta semana cada reserva te costó: ${parts.join(', ')}. La directa: $0.`);
     const mkt = w.costs.marketing + w.costs.commission;
-    if (mkt > w.revenue * 0.25 && w.profit < 0) discover(s, 'decir_si', `Esta semana gastaste ${money(mkt)} en ventas y marketing, y la semana cerró con pérdida.`);
+    if (mkt > w.revenue * 0.25 && w.profit < 0) discover(s, 'decir_si', `Esta semana gastaste ${money(mkt)} en publicidad y comisiones de agencias, y la semana cerró con pérdida.`);
     const total = Object.values(w.bookings).reduce((a, b) => a + b, 0);
     if (s.mkt.ota && total > 0 && (w.bookings.directo + w.bookings.club) / total >= 0.6 && level(s, 'canal') > 0) {
       applyLesson(s, 'canal', `Con agencias activas, ${Math.round(((w.bookings.directo + w.bookings.club) / total) * 100)}% de tus reservas fueron directas: te ahorraste comisiones.`);
@@ -178,7 +179,7 @@ export function afterMonth(s, m) {
   if (m.profit < 0) discover(s, 'errores_datos', `El mes cerró con ${money(m.profit)}. Ahora sabes qué no funcionó.`);
   else if (s.months.length > 1 && s.months[s.months.length - 2].profit < 0) applyLesson(s, 'errores_datos', `Después de un mes con pérdida, este cerraste con ${money(m.profit)}.`);
   if (m.profit > 0) {
-    applyLesson(s, 'location', `Tu hotel en ${s.hotelName} cerró el mes con ganancia: la ubicación funciona.`);
+    applyLesson(s, 'location', `${s.hotelName} cerró el mes con ganancia: la ubicación funciona.`);
     applyLesson(s, 'conoce_cliente', 'Tu propuesta de valor atrajo huéspedes todo el mes.');
   }
   monthLessons(s, m);
@@ -193,7 +194,7 @@ function monthLessons(s, m) {
   }
   const mkt = m.costs.marketing + m.costs.commission;
   if (m.chapter >= 3 && level(s, 'decir_si') > 0 && m.profit > 0 && mkt <= m.revenue * 0.12) {
-    applyLesson(s, 'decir_si', `Gastaste en ventas solo ${Math.round((mkt / m.revenue) * 100)}% de tus ingresos y el mes cerró con ganancia.`);
+    applyLesson(s, 'decir_si', `Gastaste en publicidad y comisiones solo ${Math.round((mkt / m.revenue) * 100)}% de tus ingresos y el mes cerró con ganancia.`);
   }
   if (m.chapter >= 6) {
     if (m.breakdowns === 0 && s.maint.level >= 1 && s.maint.condition >= 70) {

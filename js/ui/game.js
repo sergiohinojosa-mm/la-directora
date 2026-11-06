@@ -4,12 +4,12 @@ import { h, money, pct, calendar, dateLabel, DAYS_SHORT, DAYS, clamp } from '../
 import { loc, preview, forecast, refEff, cleaningCapacity, totalRooms, weekCost, roomsOf } from '../engine/sim.js';
 import { resolveEvent, playDay, finishEvening, advanceAfterDay, nextDay, hire, fire, eventOptions } from '../engine/flow.js';
 import { EVENT_BY_ID, txt } from '../data/events.js';
-import { AREAS, has, chapterFor, CHAPTERS } from '../data/chapters.js';
+import { AREAS, has, chapterFor, CHAPTERS, chapterStartMonth } from '../data/chapters.js';
 import { areaPanel } from './areas.js';
 import { chapterIntro } from './chapter.js';
 import { playerAvatar } from './avatar.js';
 import { currentProfile, playerName } from '../store.js';
-import { ensure, recruitCost, extraStaff, idleWages } from '../engine/systems.js';
+import { ensure, recruitCost, extraStaff, idleWages, chainPrice } from '../engine/systems.js';
 import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER, TRAINING_DAYS } from '../data/world.js';
 import { rank } from '../data/badges.js';
 import { mandateFor, profitGoalFor, monthProgress } from '../engine/board.js';
@@ -259,11 +259,32 @@ function tipText(s, p, asked) {
   const avgRatio = L.rooms.reduce((a, r) => a + s.prices[r.id] / refEff(s, r), 0) / L.rooms.length;
   const early = s.day <= 21 || asked;
   const recall = (id, fallback) => (s.lessons[id]?.level ? `${fallback}<br><b>📖 Recuerda: “${LESSON_BY_ID[id].phrase}”</b>` : fallback);
+  // First days of a chapter: point her to the new tab and the first thing to try there.
+  const area = AREAS.find((x) => x.ch === chapterFor(s) && x.ch > 1);
+  if (area && calendar(s.day).dayOfMonth <= 3 && calendar(s.day).month === chapterStartMonth(area.ch) && !asked) {
+    const hint = {
+      equipo: 'Revisa el sueldo de tu equipo y piensa si vale la pena capacitarlo en un día flojo.',
+      ventas: 'Prueba encender un canal (por ejemplo, agencias en línea) y al final de la semana mira cuánto te costó cada reserva.',
+      servicio: 'Elige tu política de cancelación y cuánto puede resolver Kevin sin preguntarte.',
+      restaurante: 'Decide si abres el restaurante y prueba ofrecer uno o dos extras a tus huéspedes (no todos a la vez).',
+      hotel: 'Revisa el estado del hotel, elige un mantenimiento y considera el corte de caja diario.',
+      competencia: 'Mira cuánto cobra GlobalStay y piensa qué te hace distinta.',
+      plan: 'Elige tu gran apuesta y con qué dinero pagarla. La presentas en la junta de este mes.',
+    }[area.id];
+    return `Este mes se abrió la pestaña <b>${area.icon} ${area.name}</b>. ${hint}`;
+  }
   if (s.day === 1) return '¡Bienvenida, Directora! Soy <b>Botones</b>. Cada mañana decides <b>precios</b> y <b>limpieza</b>. Mira el pronóstico: entre semana viene menos gente que el fin de semana. Cuando estés lista, toca <b>Abrir el día</b>.';
   if (p.lostDirty > 0) return recall('ejecucion', `Hoy hay <b>${p.dirtyStart} cuartos por limpiar</b> y tu equipo solo puede limpiar <b>${p.capacity}</b>. Un cuarto sucio no se puede vender. ¿Horas extra o contratar?`);
   if (extraStaff(s) > 0 && (asked || s.day % 3 === 0)) return `Tienes <b>${s.housekeepers} recamaristas</b> y con <b>${s.housekeepers - extraStaff(s)}</b> alcanzaría aunque el hotel se llene. Cada persona de más cuesta <b>${money(480 * (chapterFor(s) >= 2 ? s.team.wage : 1))} al día</b>. ¿Ajustas tu equipo?`;
   if (s.cash < weekCost(s)) return recall('cash_king', 'Tu caja está muy baja. Cuida cada gasto y busca días donde puedas ganar más.');
   if (s.morale < 50) return recall('equipo', 'Tu equipo está cansado. Un equipo cansado limpia más lento y atiende peor.');
+  // Chapter situations where a saying she learned applies: remind it at the moment of deciding.
+  const ch = chapterFor(s);
+  if (ch >= 3 && s.mkt.ota && fcToday > rooms * 1.1) return recall('canal', 'Hoy te vas a llenar de todos modos. ¿Necesitas las agencias hoy? Cada reserva por agencia les deja 18%.');
+  if (ch >= 6 && (s.maint.condition ?? 100) < 65) return recall('techo', `Tu hotel está en <b>${Math.round(s.maint.condition)}/100</b>. Con poco mantenimiento, las cosas se descomponen en el peor momento.`);
+  if (ch >= 2 && s.morale < 55 && s.team.wage < 1) return recall('retener', 'Tu equipo está cansado y gana menos que en otros hoteles. Alguien podría renunciar.');
+  if (ch >= 5 && Object.values(s.offers).filter(Boolean).length > 2) return recall('cross_sell', 'Estás ofreciendo muchos extras a la vez. Con uno o dos, los huéspedes compran más y se fastidian menos.');
+  if (ch >= 7 && s.comp.open && s.prices[L.rooms[0].id] < chainPrice(s)) return recall('diferencia', `Estás cobrando menos que GlobalStay (${money(chainPrice(s))}). ¿De verdad necesitas competir por precio?`);
   if (s.day === 2) return 'Cada cuarto ocupado anoche hay que <b>limpiarlo hoy</b>. Si no alcanza tu equipo, ese cuarto no se vende.';
   if (s.day === 3) return 'Mira el <b>pronóstico</b>: las barras rojas son días con más gente que cuartos. ¿Cobrarías lo mismo esos días?';
   if (s.day === 4) return 'Dato real: en México los hoteles se llenan en promedio <b>60%</b>. Casi nunca están llenos, por eso cada cuarto vendido cuenta.';
@@ -546,8 +567,10 @@ function week(s, panel) {
   const w = s.weeks[s.weeks.length - 1];
   const prev = s.weeks[s.weeks.length - 2];
   const days = s.history.slice(-7);
-  const best = days.reduce((a, b) => (b.profit > a.profit ? b : a));
-  const worst = days.reduce((a, b) => (b.profit < a.profit ? b : a));
+  // Best/worst day by operation: the monthly bank payment and taxes would always make day 28 "the worst".
+  const op = (r) => r.profit + (r.costs.loan || 0) + (r.costs.isr || 0) + (r.costs.socio || 0);
+  const best = days.reduce((a, b) => (op(b) > op(a) ? b : a));
+  const worst = days.reduce((a, b) => (op(b) < op(a) ? b : a));
   const q = DIARY_QUESTIONS[(w.week - 1) % DIARY_QUESTIONS.length];
   const existing = s.diary.find((d) => d.year === s.year && d.week === w.week);
   const ta = h('textarea', { class: 'text-input', id: 'diary', placeholder: 'Escribe una o dos líneas (opcional)…', maxlength: 400 }, existing?.answer || '');
@@ -563,8 +586,9 @@ function week(s, panel) {
         kpi('Cuartos llenos', pct(w.occupancy), prev ? w.occupancy - prev.occupancy : null, (v) => Math.round(v * 100) + ' pts'),
         kpi('Precio promedio', money(w.adr), prev ? w.adr - prev.adr : null, money)),
       h('div', { class: 'pl' },
-        h('div', { class: 'ln' }, h('span', null, '🏆 Mejor día'), h('b', null, `${DAYS[best.dow]} · ${money(best.profit)}`)),
-        h('div', { class: 'ln' }, h('span', null, '🌧️ Día más flojo'), h('b', null, `${DAYS[worst.dow]} · ${money(worst.profit)}`)),
+        h('div', { class: 'ln' }, h('span', null, '🏆 Mejor día'), h('b', null, `${DAYS[best.dow]} · ${money(op(best))}`)),
+        h('div', { class: 'ln' }, h('span', null, '🌧️ Día más flojo'), h('b', null, `${DAYS[worst.dow]} · ${money(op(worst))}`)),
+        days.some((r) => r.costs.loan) ? h('small', { class: 'muted' }, 'Sin contar el pago al banco ni los impuestos del mes.') : null,
         h('div', { class: 'ln' }, h('span', null, '🧹 Huéspedes perdidos por cuartos sucios'), h('b', { style: { color: w.lostDirty ? 'var(--bad)' : 'var(--good)' } }, w.lostDirty)),
         h('div', { class: 'ln' }, h('span', null, '🛏️ Noches de cuarto vacías'), h('b', null, w.emptyNights)),
         w.idleWages > 0 ? h('div', { class: 'ln' }, h('span', null, '🧹 Sueldos de limpieza que sobraron'), h('b', { style: { color: 'var(--bad)' } }, money(w.idleWages))) : null,

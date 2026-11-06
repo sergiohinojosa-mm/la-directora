@@ -42,7 +42,7 @@ export const WAGES = [
   { v: 1.15, name: 'Arriba del mercado', morale: 80, quit: 0.45 },
 ];
 export const wageInfo = (s) => WAGES.find((w) => w.v === s.team.wage) || WAGES[1];
-export const STAFF_NAMES = ['Doña Chela', 'Rosa', 'Lupita', 'Toño', 'Mari', 'Beto', 'Juana', 'Paco', 'Lalo', 'Carmen'];
+export const STAFF_NAMES = ['Doña Chela', 'Rosa', 'Lupita', 'Mari', 'Juana', 'Carmen', 'Lety', 'Paty', 'Susi', 'Toñita'];
 export const recruitCost = (s) => (chapterFor(s) >= 2 ? 2500 : 0);
 export const trainCost = (s) => 1500 * s.housekeepers;
 export const MAX_SKILL = 3;

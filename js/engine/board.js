@@ -4,7 +4,7 @@
 import { clamp, money, pct, DAYS, DAYS_PER_MONTH } from '../util.js';
 import { loc, weekCost, season } from './sim.js';
 import { discover, applyLesson } from './lessons.js';
-import { LESSONS } from '../data/lessons.js';
+import { LESSONS, RECALL } from '../data/lessons.js';
 import { chapterFor } from '../data/chapters.js';
 import {
   PROJECTS, projectEstimate, paybackMonths, newLoanPayment, startProject, potRev, OTA_FEE,
@@ -34,7 +34,7 @@ export const MANDATES = [
     text: () => 'Este mes queremos que nadie renuncie y que el ánimo del equipo cierre en 65 o más.',
     met: (s, m) => m.quits === 0 && m.morale >= 65 },
   { id: 'canales', title: 'Que nos encuentren',
-    text: (s) => `Este mes queremos ${pct(occTargetFor(s, curMonth(s)) + 0.03)} de cuartos llenos, gastando en ventas y marketing (incluidas comisiones) máximo 15% de tus ingresos.`,
+    text: (s) => `Este mes queremos ${pct(occTargetFor(s, curMonth(s)) + 0.03)} de cuartos llenos, gastando en publicidad y comisiones de agencias máximo 15% de tus ingresos.`,
     met: (s, m) => m.occupancy >= occTargetFor(s, m.month) + 0.03 && mktCost(m) <= m.revenue * 0.15 },
   { id: 'por_huesped', title: 'Más por cada huésped',
     text: () => 'Este mes queremos que cada huésped te deje en extras (restaurante y venta cruzada) al menos 10% de lo que paga por su cuarto.',
@@ -43,7 +43,7 @@ export const MANDATES = [
     text: () => 'Este mes queremos el hotel en 70/100 o más de estado y la caja bajo control: corte de caja diario y cero faltantes.',
     met: (s, m) => (m.condition ?? 100) >= 70 && m.controls && m.leak === 0 },
   { id: 'defender', title: 'Defender nuestro lugar',
-    text: (s) => `GlobalStay está enfrente. Queremos ${pct(occTargetFor(s, curMonth(s)))} de cuartos llenos sin bajar el precio promedio de 95% del normal.`,
+    text: (s) => `GlobalStay está enfrente. Queremos ${pct(occTargetFor(s, curMonth(s)))} de cuartos llenos sin cobrar, en promedio, menos de 95% de tu precio normal.`,
     met: (s, m) => m.occupancy >= occTargetFor(s, m.month) && m.priceRatio >= 0.95 },
   { id: 'revpar', title: 'Más RevPAR',
     text: (s) => `Queremos un RevPAR (ingreso por cuarto disponible) mayor que el del mes pasado (${money(s.months[s.months.length - 1]?.revpar ?? 0)}).`,
@@ -85,7 +85,7 @@ export function kpis(s, m) {
     { id: 'morale', label: 'Ánimo del equipo', value: Math.round(m.morale) + '/100', bad: m.morale < 50 },
     { id: 'lostDirty', label: 'Huéspedes sin cuarto por limpieza', value: String(m.lostDirty), bad: m.lostDirty > 3 },
     m.chapter >= 2 && { id: 'quits', label: 'Renuncias', value: String(m.quits), bad: m.quits > 0 },
-    m.chapter >= 3 && { id: 'mkt', label: 'Ventas y marketing (% de ingresos)', value: pct(mktCost(m) / (m.revenue || 1)), bad: mktCost(m) > m.revenue * 0.15 },
+    m.chapter >= 3 && { id: 'mkt', label: 'Publicidad y comisiones (% de ingresos)', value: pct(mktCost(m) / (m.revenue || 1)), bad: mktCost(m) > m.revenue * 0.15 },
     m.chapter >= 4 && { id: 'unresolved', label: 'Quejas sin resolver', value: String(m.unresolved), bad: m.unresolved > 5 },
     m.chapter >= 5 && { id: 'perGuest', label: 'Ingreso por huésped', value: money(m.revenue / (m.soldTotal || 1)), bad: false },
     m.chapter >= 6 && { id: 'condition', label: 'Estado del hotel', value: Math.round(m.condition ?? 100) + '/100', bad: (m.condition ?? 100) < 60 },
@@ -135,7 +135,7 @@ export function questions(s, m) {
       explain: `El gasto más grande fue "${costNames[biggest]}": ${money(m.costs[biggest])}.` },
     { by: 'marcela', text: '¿Qué día de la semana se llenó más tu hotel?',
       options: shuffle([best, worst, other], month * 13).map((d) => ({ label: DAYS[d], correct: d === best })),
-      explain: `Los ${plural(DAYS[best])} se llenó ${pct(byDow[best])} en promedio y los ${plural(DAYS[worst])} solo ${pct(byDow[worst])}. Los días llenos aguantan precios más altos.` },
+      explain: `Los ${plural(DAYS[best])} el hotel se llenó ${pct(byDow[best])} en promedio y los ${plural(DAYS[worst])} solo ${pct(byDow[worst])}. Los días llenos aguantan precios más altos.` },
     { by: 'papa', text: 'Si el próximo mes quieres ganar más, ¿qué cambiarías primero?',
       options: shuffle(Object.keys(fixes), month * 3).map((k) => ({ label: fixes[k], correct: k === fix })),
       explain: fix === 'limpieza' ? `Perdiste ${m.lostDirty} huéspedes por cuartos sucios. Ese dinero ya estaba en la puerta.`
@@ -260,8 +260,8 @@ export function payDividends(s, choice, teamBonus) {
   const safe = s.cash >= 2 * weekCost(s);
   const notes = [];
   if (choice === 0) notes.push({ by: 'alma', text: 'Los dueños también arriesgaron su dinero. El próximo año espero algo.' }, { by: 'marcela', text: 'Me gusta que el hotel quede fuerte.' });
-  if (choice === 1) notes.push({ by: 'alma', text: 'Justo. Los dueños reciben su parte y la caja sigue sana.' }, { by: 'rodrigo', text: 'Un retorno razonable. Bien.' });
-  if (choice === 2) notes.push({ by: 'rodrigo', text: '¡Excelente retorno!' }, { by: 'marcela', text: safe ? 'Ojalá no nos haga falta ese dinero en la temporada baja.' : 'La caja quedó muy baja. Me preocupa.' });
+  if (choice === 1) notes.push({ by: 'alma', text: 'Justo. Los dueños reciben su parte y la caja sigue sana.' }, { by: 'rodrigo', text: 'Una buena ganancia para los dueños. Bien.' });
+  if (choice === 2) notes.push({ by: 'rodrigo', text: '¡Excelente ganancia para los dueños!' }, { by: 'marcela', text: safe ? 'Ojalá no nos haga falta ese dinero en la temporada baja.' : 'La caja quedó muy baja. Me preocupa.' });
   if (teamBonus) notes.push({ by: 'marcela', text: 'El bono al equipo dice mucho de ti, Directora.' });
   const delta = (choice === 1 ? 6 : choice === 2 ? (safe ? 4 : -6) : -2) + (teamBonus ? 2 : 0);
   s.confidence = clamp(s.confidence + delta, 0, 100);
@@ -295,12 +295,19 @@ function recallQuestion(s, month) {
   const known = LESSONS.filter((l) => (s.lessons[l.id]?.level ?? 0) > 0);
   if (known.length < 2) return null;
   const l = known[(month * 7) % known.length];
-  const words = l.phrase.match(WORD) || [];
-  if (!words.length) return null;
-  const answer = words.reduce((a, b) => (b.length > a.length ? b : a));
-  const pool = LESSONS.filter((x) => x.id !== l.id).flatMap((x) => x.phrase.match(WORD) || []).filter((w) => w.toLowerCase() !== answer.toLowerCase());
-  const distractors = [...new Set(pool)].sort((a, b) => Math.abs(a.length - answer.length) - Math.abs(b.length - answer.length) || a.localeCompare(b));
-  const picks = [distractors[month % Math.min(6, distractors.length)], distractors[(month + 3) % Math.min(6, distractors.length)]].filter((w, i, arr) => w && arr.indexOf(w) === i);
+  let answer;
+  let picks;
+  const curated = RECALL[l.id];
+  if (curated && l.phrase.includes(curated[0])) {
+    [answer, ...picks] = curated;
+  } else {
+    const words = l.phrase.match(WORD) || [];
+    if (!words.length) return null;
+    answer = words.reduce((a, b) => (b.length > a.length ? b : a));
+    const pool = LESSONS.filter((x) => x.id !== l.id).flatMap((x) => x.phrase.match(WORD) || []).filter((w) => w.toLowerCase() !== answer.toLowerCase());
+    const distractors = [...new Set(pool)].sort((a, b) => Math.abs(a.length - answer.length) - Math.abs(b.length - answer.length) || a.localeCompare(b));
+    picks = [distractors[month % Math.min(6, distractors.length)], distractors[(month + 3) % Math.min(6, distractors.length)]].filter((w, i, arr) => w && arr.indexOf(w) === i);
+  }
   return {
     by: l.by,
     text: `Completa la frase que te enseñé: “${l.phrase.replace(answer, '_____')}”`,

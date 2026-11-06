@@ -100,14 +100,14 @@ export const CHAPTERS = {
     title: 'Llegó la competencia', by: 'papa', icon: '🆚',
     story: [
       'Una cadena internacional, GlobalStay, abrió a dos cuadras. Es más barata y todo el mundo conoce su marca.',
-      'Si solo bajas precios, siempre habrá alguien más barato. Vas a tener que leer la demanda y defender lo que te hace distinta.',
+      'Si solo bajas precios, siempre habrá alguien más barato. Vas a tener que fijarte cuánta gente viene cada día y defender lo que te hace distinta.',
     ],
     unlocks: [
       ['🏢', 'GlobalStay: verás su precio cada día y cuántos clientes te quita.'],
       ['🦄', 'Experiencia única: algo que solo tu hotel ofrece.'],
       ['🤖', 'Precios automáticos: reglas que suben o bajan tu precio según la demanda.'],
       ['🎟️', 'Sobreventa: vender un cuarto de más por si alguien cancela… con riesgo.'],
-      ['📐', 'Nuevos números: ADR (precio promedio) y RevPAR (ingreso por cuarto disponible).'],
+      ['📐', 'Nuevos números: ADR (lo que cobras en promedio por cuarto vendido) y RevPAR (lo que gana cada cuarto que tienes, lleno o vacío).'],
     ],
   },
   8: {
@@ -118,9 +118,9 @@ export const CHAPTERS = {
     ],
     unlocks: [
       ['🏗️', 'Gran apuesta: más cuartos, spa o terraza. Cada una cuesta y paga distinto.'],
-      ['🏦', 'Financiamiento: con tu caja, con el banco (puedes negociar) o con Don Rodrigo como socio.'],
+      ['🏦', '¿Con qué dinero?: tu caja, un préstamo del banco o Don Rodrigo (pone el dinero y se queda con parte de la ganancia).'],
       ['🗳️', 'Votación: cada consejero revisa algo distinto de tu plan.'],
-      ['💸', 'Dividendos: al cerrar el año decides cuánto repartir y cuánto reinvertir.'],
+      ['💸', 'Dividendos: la parte de la ganancia que se reparte a los dueños. Al cerrar el año decides cuánto repartir y cuánto dejar en el hotel.'],
     ],
   },
   9: {

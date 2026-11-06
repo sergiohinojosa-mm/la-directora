@@ -129,8 +129,8 @@ export const DAILY_EVENTS = [
     title: 'Un huésped llegó con su perrito',
     text: 'Tu hotel no acepta mascotas, pero él no lo sabía y viene de muy lejos.',
     options: [
-      { label: 'Aceptarlo cobrando limpieza extra', fx: [['Ingreso +', 'up'], ['Más limpieza', 'q']],
-        apply: (s) => { s.cash += 400; add(s, { type: 'cleanMult', mult: 0.96, label: 'Cuarto con mascota' }); return 'El perrito fue la estrella del día.'; } },
+      { label: 'Aceptarlo cobrando limpieza extra', fx: [['Ingreso +', 'up'], ['Más limpieza', 'q'], ['Otros huéspedes', 'q']],
+        apply: (s) => { s.cash += 400; s.reputation = Math.max(1, s.reputation - 0.02); add(s, { type: 'cleanMult', mult: 0.96, label: 'Cuarto con mascota' }); return 'El perrito fue la estrella del día… pero un huésped alérgico se quejó.'; } },
       { label: 'Explicar la regla con amabilidad y recomendar otro hotel', fx: [['Reglas claras', 'up']], apply: () => 'Entendió y te agradeció la recomendación.' },
       { label: 'Aceptarlo gratis', fx: [['Huésped feliz', 'up'], ['Otros piden lo mismo', 'dn']],
         apply: (s) => { add(s, { type: 'cleanMult', mult: 0.96, label: 'Cuarto con mascota' }); return 'Feliz… y mañana alguien más llegó con su gato.'; } },

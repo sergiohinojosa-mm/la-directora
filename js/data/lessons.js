@@ -209,7 +209,7 @@ export const LESSONS = [
   // Capítulo 8
   { id: 'mismo_barco', by: 'papa', chapter: 8, ready: true, icon: '🚣',
     phrase: 'Dueño y directora reman en el mismo barco',
-    meaning: 'Los inversionistas quieren ganancia y que el hotel valga más. Una buena directora entiende eso y rinde cuentas.',
+    meaning: 'Los inversionistas quieren ganancia y que el hotel valga más. Una buena directora entiende eso y explica sus resultados.',
     tip: 'Antes de una junta, piensa qué le preocupa a cada consejero.',
     when: 'Cuando Don Rodrigo entra al Consejo como inversionista (capítulo 8).' },
 
@@ -229,3 +229,46 @@ export const CHAPTER_NAMES = {
 };
 
 export const LEVELS = ['Por descubrir', 'Descubierta', 'Aplicada', 'Dominada'];
+
+// "Completa la frase" in the board meeting: the missing word and two believable wrong ones.
+export const RECALL = {
+  location: ['location', 'decoration', 'vacation'],
+  conoce_cliente: ['cliente', 'hotel', 'precio'],
+  ejecucion: ['Execution', 'Decoration', 'Vacation'],
+  cuarto_vacio: ['siempre', 'un día', 'mañana'],
+  demanda_precio: ['quieren', 'duermen', 'pagan menos'],
+  numeros_historia: ['historia', 'mentira', 'canción'],
+  palabra: ['palabra', 'casa', 'suerte'],
+  cash_king: ['king', 'queen', 'cheap'],
+  equipo: ['team', 'money', 'hotel'],
+  practica: ['maestro', 'cansado', 'aburrido'],
+  revenue_vanity: ['Revenue', 'Breakfast', 'Weekend'],
+  duena: ['dueña', 'víctima', 'espectadora'],
+  malas_noticias: ['rápido', 'nunca', 'en secreto'],
+  errores_datos: ['fracasos', 'chistes', 'secretos'],
+  resenas_precio: ['reseñas', 'toallas', 'cortinas'],
+  guerra_precios: ['subirlo', 'pintarlo', 'olvidarlo'],
+  rodeate: ['Rodéate', 'Escóndete', 'Aléjate'],
+  escucha_equipo: ['Escucha', 'Ignora', 'Regaña'],
+  retener: ['reemplazarla', 'regañarla', 'olvidarla'],
+  largo_plazo: ['largo', 'corto', 'medio'],
+  canal: ['canal', 'cuarto', 'huésped'],
+  medir: ['mejora', 'vende', 'olvida'],
+  decir_si: ['importante', 'divertido', 'barato'],
+  cliente_respeto: ['cliente', 'gerente', 'banco'],
+  empodera: ['resolver', 'esperar', 'preguntar'],
+  reputacion: ['construirse', 'venderse', 'limpiarse'],
+  cross_sell: ['tienes', 'buscas', 'pierdes'],
+  negocia: ['ganen', 'pierdan', 'discutan'],
+  techo: ['techo', 'piso', 'jardín'],
+  barato_caro: ['caro', 'bonito', 'gratis'],
+  guarda: ['alta', 'media', 'mala'],
+  seguridad: ['seguridad', 'velocidad', 'comodidad'],
+  integridad: ['integridad', 'puntualidad', 'creatividad'],
+  confia_verifica: ['verifica', 'olvida', 'presume'],
+  diferencia: ['distinta', 'barata', 'famosa'],
+  sobreventa: ['cumplir', 'imaginar', 'cobrar'],
+  decide_info: ['información', 'suerte', 'prisa'],
+  mismo_barco: ['barco', 'tren', 'avión'],
+  delegar: ['desentenderse', 'confiar', 'mandar'],
+};
