@@ -1,7 +1,6 @@
 // Lesson ids that have a recorded file in this folder (audio/<id>.m4a).
 // Only Papá's lessons have a voice; Alma's and Marcela's are read on screen.
-// Right now these are synthetic placeholder voices; replace each file with Papá's recording
-// (same name) from grabar.html?quien=papa and keep the id in this list.
+// Papá recorded all 31 with grabar.html (6 nov 2026); a new one keeps the same file name.
 export const RECORDED = [
   'location',
   'ejecucion',
