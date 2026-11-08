@@ -176,7 +176,7 @@ export function startPrologue(onDone, carry = null) {
             hotelName: pick.hotelName.trim() || 'Hotel Coral',
             year: carry ? carry.year : 1, lessons: app.s?.lessons, diary: carry?.diary,
           });
-          if (carry) { s.badges = carry.badges; s.stars = carry.stars; s.monthStars = carry.monthStars; }
+          if (carry) { s.badges = carry.badges; s.stars = carry.stars; s.monthStars = carry.monthStars; s.reach = carry.reach; }
           startMorning(s);
           pickChallenge(s);
           app.s = s;

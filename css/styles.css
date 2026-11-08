@@ -351,6 +351,14 @@ textarea.text-input { min-height: 96px; padding: 12px 16px; font-size: 16px; fon
 .lcard.l3 { background: linear-gradient(140deg, #FFF6DA, #FFD978); color: var(--ink); border: 2px solid #E8A600; }
 .lcard .q { font-family: var(--f-display); font-weight: 800; font-size: 18px; line-height: 1.15; }
 .lcard.l0 .q { color: #5F6A91; }
+.lcard.review { background: rgba(255,255,255,.06); border: 2px dashed var(--aqua); color: #fff; cursor: pointer; }
+.lcard.review .q { color: #fff; }
+.lcard.review .muted { color: #B9C2E6; }
+.level-pill.review { background: #DDF6F7; color: #0F5C60; }
+.review-banner { background: #DDF6F7; color: #0F5C60; border-radius: var(--r-md); padding: 12px 14px; font-weight: 700; }
+.review-q { font-size: 17px; font-weight: 700; text-align: left; line-height: 1.35; }
+.review-opts { display: grid; gap: 10px; width: 100%; }
+.review-opts .btn { white-space: normal; text-align: left; line-height: 1.3; }
 .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .bcard { border-radius: var(--r-md); padding: 14px; text-align: center; background: var(--night-2); border: 1px solid rgba(255,255,255,.08); display: grid; gap: 6px; justify-items: center; }
 .bcard .ic { font-size: 40px; }

@@ -11,7 +11,7 @@ import { startPrologue } from './ui/prologue.js';
 import { renderGame, setNav } from './ui/game.js';
 import { renderBoard, setBoardNav } from './ui/board.js';
 import { renderBook, setBookRedraw } from './ui/book.js';
-import { discover } from './engine/lessons.js';
+import { discover, reachedMonth } from './engine/lessons.js';
 import { LESSONS } from './data/lessons.js';
 import { BOARD } from './data/world.js';
 import { playerAvatar } from './ui/avatar.js';
@@ -144,7 +144,7 @@ async function newGame(hasSave) {
 
 function newYear() {
   const old = app.s;
-  const carry = { year: (old.year || 1) + 1, lessons: old.lessons, diary: old.diary, badges: old.badges || [], stars: old.stars || {}, monthStars: old.monthStars || {} };
+  const carry = { year: (old.year || 1) + 1, lessons: old.lessons, diary: old.diary, badges: old.badges || [], stars: old.stars || {}, monthStars: old.monthStars || {}, reach: reachedMonth(old) };
   app.s = { lessons: old.lessons, inbox: [], day: 0 };
   discover(app.s, 'practica', `Tu hotel anterior cerró. Empiezas el año ${carry.year} con todo lo que aprendiste.`);
   startPrologue(onPrologueDone, carry);

@@ -2,7 +2,8 @@
 // → Dominada (applied it three times). Each step carries `ctx`: what just happened in her hotel,
 // so the saying is tied to a concrete memory. Messages queue in s.inbox and the UI shows them.
 
-import { LESSON_BY_ID } from '../data/lessons.js';
+import { LESSONS, LESSON_BY_ID, lessonMonth } from '../data/lessons.js';
+import { REVIEW } from '../data/review.js';
 import { totalRooms, weekCost, season } from './sim.js';
 import { money, DAYS, calendar, DAYS_PER_MONTH } from '../util.js';
 import { chapterFor, hotelMonth } from '../data/chapters.js';
@@ -10,6 +11,18 @@ import { occTargetFor, lowSeason, profitGoalFor } from './board.js';
 import { CANCEL, wageInfo, activeOffers, PROJECTS, projectEstimate, paybackMonths } from './systems.js';
 
 export const level = (s, id) => s.lessons[id]?.level ?? 0;
+
+// Repaso del Consejo: a lesson from a month she already finished but never lived can be reviewed in
+// the Libro (a "¿Qué harías?" question, then the lesson). It starts at Descubierta like a lived one,
+// and only real decisions take it to Aplicada and Dominada.
+// `s.reach` keeps the months finished in an earlier hotel, so a new hotel doesn't lock them again.
+export const reachedMonth = (s) => Math.max(s.reach || 0, hotelMonth(s) - 1);
+export const toReview = (s, upTo = reachedMonth(s)) =>
+  LESSONS.filter((l) => REVIEW[l.id] && level(s, l.id) === 0 && lessonMonth(l) <= upTo);
+export function review(s, id, right) {
+  if (level(s, id) > 0) return;
+  s.lessons[id] = { level: 1, applied: 0, day: s.day, year: s.year, ctx: '', reviewed: true, right, seen: true };
+}
 
 export function discover(s, id, ctx = '') {
   if (!LESSON_BY_ID[id] || level(s, id) > 0) return false;

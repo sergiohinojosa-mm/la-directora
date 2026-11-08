@@ -7,6 +7,7 @@ import { playerAvatar } from './avatar.js';
 import { currentProfile, playerName } from '../store.js';
 import { yearClose } from './chapter.js';
 import { nextDay } from '../engine/flow.js';
+import { toReview } from '../engine/lessons.js';
 import { checkBadges } from '../data/badges.js';
 import { BOARD } from '../data/world.js';
 import { saveGame } from '../store.js';
@@ -190,6 +191,7 @@ export function renderBoard() {
       h('div', { class: 'card-dark card stack' },
         h('div', { class: 'row between' }, h('b', null, 'Confianza del Consejo'), h('b', { class: 'num' }, `${Math.round(s.confidence)} (${res.delta >= 0 ? '+' : ''}${Math.round(res.delta)})`)),
         h('div', { class: 'meter' }, h('i', { style: { width: s.confidence + '%' } }))),
+      reviewNote(s, m.month),
       res.verdict === 'closed' ? null : h('div', { class: 'card stack' },
         h('span', { class: 'kicker' }, `Nuevo mandato para el mes ${m.month + 1}`),
         h('h3', null, next.title),
@@ -215,4 +217,11 @@ export function renderBoard() {
     return verdict();
   }
   render();
+}
+
+// Lessons of the month she didn't get to live: from tomorrow the Consejo reviews them with her in the Libro.
+function reviewNote(s, month) {
+  const n = toReview(s, month).length;
+  if (!n) return null;
+  return h('div', { class: 'review-banner' }, `📖 ${n === 1 ? 'Te quedó 1 lección' : `Te quedaron ${n} lecciones`} sin vivir. Desde mañana puedes repasarlas en tu Libro: el Consejo te las cuenta.`);
 }

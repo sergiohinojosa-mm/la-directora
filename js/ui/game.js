@@ -19,6 +19,7 @@ import { hotelSvg, animateDay } from './hotel.js';
 import { drainInbox, pendingLessons } from './inbox.js';
 import { CHALLENGE_BY_ID, challengeText } from '../data/challenges.js';
 import { LESSON_BY_ID } from '../data/lessons.js';
+import { toReview, reachedMonth } from '../engine/lessons.js';
 import { reviewFor } from '../data/reviews.js';
 
 let nav = {};
@@ -86,7 +87,7 @@ function legend(night) {
 function topbar(s) {
   const r = rank(s);
   const lowCash = s.cash < weekCost(s);
-  const newLessons = Object.values(s.lessons).some((l) => !l.seen);
+  const newLessons = Object.values(s.lessons).some((l) => !l.seen) || (s.reviewNotice !== reachedMonth(s) && toReview(s).length > 0);
   return h('header', { class: 'topbar' },
     h('button', { class: 'brand', 'aria-label': 'Cambiar de jugadora', onclick: () => menu() }, playerAvatar('mini', currentProfile()?.look, { badge: false }), h('div', null, h('b', null, s.hotelName), h('small', null, `Directora ${playerName()} · ${r.name} · ${dateLabel(s.day)}`))),
     h('div', { class: 'chips' },
