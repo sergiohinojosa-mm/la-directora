@@ -11,7 +11,7 @@ import { playerAvatar } from './avatar.js';
 import { currentProfile, playerName } from '../store.js';
 import { ensure, recruitCost, extraStaff, idleWages, chainPrice } from '../engine/systems.js';
 import { HOUSEKEEPER_DAILY, ROOMS_PER_HOUSEKEEPER, TRAINING_DAYS } from '../data/world.js';
-import { rank } from '../data/badges.js';
+import { rank, catchUpBadges } from '../data/badges.js';
 import { mandateFor, profitGoalFor, monthProgress } from '../engine/board.js';
 import { saveGame } from '../store.js';
 import { app, mount, sfx, botones, toast, modal, confetti } from './core.js';
@@ -42,6 +42,7 @@ const KIND = {
 export function renderGame() {
   const s = app.s;
   ensure(s);
+  if (catchUpBadges(s)) save();
   if (s.phase === 'board') return nav.board();
   if (s.phase === 'closed') return closedScreen();
   const scene = h('div', { class: 'scene' }, hotelSvg(s, { ...sceneOpts(s), compact: isPhone() }));

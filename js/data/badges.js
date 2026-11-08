@@ -103,4 +103,21 @@ export function checkBadges(s, on, ...args) {
   if (after > before) s.inbox.push({ kind: 'rank', rank: RANKS[after].name });
 }
 
+// Badges whose check only reads the saved game are checked again each time the game opens: one
+// missed in its moment (an old cached version, a save that didn't finish) still arrives later.
+export function catchUpBadges(s) {
+  s.badges = s.badges || [];
+  const before = rank(s).index;
+  let found = false;
+  for (const b of BADGES) {
+    if (b.check.length > 1 || s.badges.includes(b.id)) continue;
+    let ok = false;
+    try { ok = b.check(s); } catch { /* a field this save doesn't have yet */ }
+    if (ok) { s.badges.push(b.id); s.inbox.push({ badge: b.id, kind: 'badge', afterLesson: b.on === 'lesson' }); found = true; }
+  }
+  const after = rank(s).index;
+  if (after > before) s.inbox.push({ kind: 'rank', rank: RANKS[after].name });
+  return found;
+}
+
 export const BADGE_BY_ID = Object.fromEntries(BADGES.map((b) => [b.id, b]));
